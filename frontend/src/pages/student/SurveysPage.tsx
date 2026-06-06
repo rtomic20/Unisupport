@@ -2,20 +2,20 @@ import { useEffect, useState } from "react";
 import api from "../../api/axios";
 
 interface Question {
-  id: number;
+  question_id: number;
   text: string;
   order: number;
 }
 
 interface Survey {
-  id: number;
+  survey_id: number;
   title: string;
   description: string;
   questions: Question[];
 }
 
 interface SurveyResponse {
-  id: number;
+  response_id: number;
   survey: number;
   submitted_at: string;
 }
@@ -45,7 +45,7 @@ function SurveyForm({
 
     // Validate all questions answered
     const unanswered = sortedQuestions.filter(
-      (q) => !(answers[q.id] ?? "").trim()
+      (q) => !(answers[q.question_id] ?? "").trim()
     );
     if (unanswered.length > 0) {
       setError("Molimo odgovorite na sva pitanja.");
@@ -55,10 +55,10 @@ function SurveyForm({
     setSubmitting(true);
     try {
       await api.post("/surveys/responses/", {
-        survey: survey.id,
+        survey: survey.survey_id,
         answers: sortedQuestions.map((q) => ({
-          question: q.id,
-          answer_text: (answers[q.id] ?? "").trim(),
+          question: q.question_id,
+          answer_text: (answers[q.question_id] ?? "").trim(),
         })),
       });
       onSubmitted();
@@ -72,16 +72,16 @@ function SurveyForm({
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
       {sortedQuestions.map((q, idx) => (
-        <div key={q.id}>
+        <div key={q.question_id}>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
             <span className="text-gray-400 mr-1.5">{idx + 1}.</span>
             {q.text}
           </label>
           <textarea
             rows={3}
-            value={answers[q.id] ?? ""}
+            value={answers[q.question_id] ?? ""}
             onChange={(e) =>
-              setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+              setAnswers((prev) => ({ ...prev, [q.question_id]: e.target.value }))
             }
             placeholder="Vaš odgovor..."
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -195,13 +195,13 @@ export default function SurveysPage() {
   ]);
 
   const availableSurveys = surveys.filter(
-    (s) => !respondedSurveyIds.has(s.id)
+    (s) => !respondedSurveyIds.has(s.survey_id)
   );
 
-  const completedSurveys = surveys.filter((s) => respondedSurveyIds.has(s.id));
+  const completedSurveys = surveys.filter((s) => respondedSurveyIds.has(s.survey_id));
 
   function getResponseDate(surveyId: number): string | null {
-    const r = responses.find((r) => r.survey === surveyId);
+    const r = responses.find((resp) => resp.survey === surveyId);
     return r ? r.submitted_at : null;
   }
 

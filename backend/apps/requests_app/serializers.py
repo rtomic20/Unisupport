@@ -56,18 +56,19 @@ class RequestSerializer(serializers.ModelSerializer):
         return None
 
     def validate(self, data):
-        request_type = data.get("request_type", getattr(self.instance, "request_type", None))
-        transport = data.get("transport_details")
-        service = data.get("service_details")
+        if not getattr(self, "partial", False):
+            request_type = data.get("request_type", getattr(self.instance, "request_type", None))
+            transport = data.get("transport_details")
+            service = data.get("service_details")
 
-        if request_type == "transport" and not transport:
-            raise serializers.ValidationError(
-                {"transport_details": "Required for transport requests."}
-            )
-        if request_type == "service" and not service:
-            raise serializers.ValidationError(
-                {"service_details": "Required for service requests."}
-            )
+            if request_type == "transport" and not transport:
+                raise serializers.ValidationError(
+                    {"transport_details": "Required for transport requests."}
+                )
+            if request_type == "service" and not service:
+                raise serializers.ValidationError(
+                    {"service_details": "Required for service requests."}
+                )
 
         start = data.get("start_time")
         end = data.get("end_time")
