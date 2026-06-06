@@ -119,7 +119,7 @@ export default function AdminTransportPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Prijevoz — Vožnje</h1>
+        <h1 className="text-xl font-bold text-gray-900">Prijevoz</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
