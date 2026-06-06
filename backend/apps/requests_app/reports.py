@@ -133,6 +133,99 @@ class SupportHoursPerAssistantView(APIView):
         ])
 
 
+class TransportDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        params = request.query_params
+        qs = Request.objects.filter(request_type="transport", accepted_by__isnull=False)
+        if params.get("from"):
+            qs = qs.filter(request_date__gte=params["from"])
+        if params.get("to"):
+            qs = qs.filter(request_date__lte=params["to"])
+        if params.get("student_id"):
+            qs = qs.filter(student_id=params["student_id"])
+        data = (
+            qs.values(
+                "student__user_id", "student__first_name", "student__last_name",
+                "accepted_by__user_id", "accepted_by__first_name", "accepted_by__last_name",
+            )
+            .annotate(count=Count("request_id"))
+            .order_by("student__last_name", "-count")
+        )
+        return Response([
+            {
+                "student_name": f"{r['student__first_name']} {r['student__last_name']}",
+                "worker_name": f"{r['accepted_by__first_name']} {r['accepted_by__last_name']}",
+                "count": r["count"],
+                "unit": "vožnji",
+            }
+            for r in data
+        ])
+
+
+class CareDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        params = request.query_params
+        qs = HomeAppointment.objects.filter(caregiver__isnull=False)
+        if params.get("from"):
+            qs = qs.filter(appointment_date__gte=params["from"])
+        if params.get("to"):
+            qs = qs.filter(appointment_date__lte=params["to"])
+        if params.get("student_id"):
+            qs = qs.filter(student_id=params["student_id"])
+        data = (
+            qs.values(
+                "student__user_id", "student__first_name", "student__last_name",
+                "caregiver__user_id", "caregiver__first_name", "caregiver__last_name",
+            )
+            .annotate(count=Count("appointment_id"))
+            .order_by("student__last_name", "-count")
+        )
+        return Response([
+            {
+                "student_name": f"{r['student__first_name']} {r['student__last_name']}",
+                "worker_name": f"{r['caregiver__first_name']} {r['caregiver__last_name']}",
+                "count": r["count"],
+                "unit": "termina",
+            }
+            for r in data
+        ])
+
+
+class SupportDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        params = request.query_params
+        qs = SupportSession.objects.filter(plan__assistant__isnull=False)
+        if params.get("from"):
+            qs = qs.filter(session_date__gte=params["from"])
+        if params.get("to"):
+            qs = qs.filter(session_date__lte=params["to"])
+        if params.get("student_id"):
+            qs = qs.filter(plan__student_id=params["student_id"])
+        data = (
+            qs.values(
+                "plan__student__user_id", "plan__student__first_name", "plan__student__last_name",
+                "plan__assistant__user_id", "plan__assistant__first_name", "plan__assistant__last_name",
+            )
+            .annotate(total=Sum("hours"))
+            .order_by("plan__student__last_name", "-total")
+        )
+        return Response([
+            {
+                "student_name": f"{r['plan__student__first_name']} {r['plan__student__last_name']}",
+                "worker_name": f"{r['plan__assistant__first_name']} {r['plan__assistant__last_name']}",
+                "count": float(r["total"]),
+                "unit": "sati",
+            }
+            for r in data
+        ])
+
+
 class UnifiedReportView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
@@ -192,5 +285,59 @@ class ExportRidesCSVView(APIView):
                 td.pickup_address if td else "",
                 td.dropoff_address if td else "",
                 r.status,
+            ])
+        return response
+
+
+class ExportCareCSVView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        params = request.query_params
+        qs = HomeAppointment.objects.select_related("student", "caregiver")
+        if params.get("from"):
+            qs = qs.filter(appointment_date__gte=params["from"])
+        if params.get("to"):
+            qs = qs.filter(appointment_date__lte=params["to"])
+        if params.get("student_id"):
+            qs = qs.filter(student_id=params["student_id"])
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = 'attachment; filename="njega.csv"'
+        writer = csv.writer(response, delimiter=";")
+        writer.writerow(["ID", "Datum", "Početak", "Kraj", "Student", "Njegovatelj", "Lokacija", "Status"])
+        for a in qs:
+            writer.writerow([
+                a.appointment_id, a.appointment_date,
+                str(a.start_time)[:5], str(a.end_time)[:5],
+                f"{a.student.first_name} {a.student.last_name}",
+                f"{a.caregiver.first_name} {a.caregiver.last_name}" if a.caregiver else "",
+                a.location, a.status,
+            ])
+        return response
+
+
+class ExportSupportCSVView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        params = request.query_params
+        qs = SupportSession.objects.select_related("plan__student", "plan__assistant")
+        if params.get("from"):
+            qs = qs.filter(session_date__gte=params["from"])
+        if params.get("to"):
+            qs = qs.filter(session_date__lte=params["to"])
+        if params.get("student_id"):
+            qs = qs.filter(plan__student_id=params["student_id"])
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = 'attachment; filename="podrska.csv"'
+        writer = csv.writer(response, delimiter=";")
+        writer.writerow(["Sesija ID", "Datum sesije", "Student", "Asistent", "Sati", "Bilješka"])
+        for s in qs:
+            plan = s.plan
+            writer.writerow([
+                s.session_id, s.session_date,
+                f"{plan.student.first_name} {plan.student.last_name}",
+                f"{plan.assistant.first_name} {plan.assistant.last_name}" if plan.assistant else "",
+                float(s.hours), s.notes,
             ])
         return response

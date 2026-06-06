@@ -10,9 +10,14 @@ class SurveyQuestionSerializer(serializers.ModelSerializer):
 
 
 class SurveyAnswerSerializer(serializers.ModelSerializer):
+    question_text = serializers.SerializerMethodField()
+
     class Meta:
         model = SurveyAnswer
-        fields = ["question", "answer_text"]
+        fields = ["question", "question_text", "answer_text"]
+
+    def get_question_text(self, obj):
+        return obj.question.text if obj.question else ""
 
 
 class SurveyResponseSerializer(serializers.ModelSerializer):

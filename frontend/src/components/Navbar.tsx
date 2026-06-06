@@ -15,7 +15,6 @@ const roleLinks: Record<string, { label: string; to: string }[]> = {
   ],
   student: [
     { label: "Moji zahtjevi", to: "/student/dashboard" },
-    { label: "Novi zahtjev", to: "/student/new-request" },
     { label: "Njega u domu", to: "/student/appointments" },
     { label: "Vršnjačka podrška", to: "/student/support-plans" },
     { label: "Ankete", to: "/student/surveys" },

@@ -8,6 +8,11 @@ from .reports import (
     ExportRidesCSVView,
     CareAppointmentsPerCaregiverView,
     SupportHoursPerAssistantView,
+    TransportDetailView,
+    CareDetailView,
+    SupportDetailView,
+    ExportCareCSVView,
+    ExportSupportCSVView,
 )
 
 router = DefaultRouter()
@@ -21,4 +26,9 @@ urlpatterns = [
     path("reports/export-rides-csv/", ExportRidesCSVView.as_view(), name="export_rides_csv"),
     path("reports/care-per-caregiver/", CareAppointmentsPerCaregiverView.as_view(), name="care_per_caregiver"),
     path("reports/support-per-assistant/", SupportHoursPerAssistantView.as_view(), name="support_per_assistant"),
+    path("reports/transport-detail/", TransportDetailView.as_view(), name="transport_detail"),
+    path("reports/care-detail/", CareDetailView.as_view(), name="care_detail"),
+    path("reports/support-detail/", SupportDetailView.as_view(), name="support_detail"),
+    path("reports/export-care-csv/", ExportCareCSVView.as_view(), name="export_care_csv"),
+    path("reports/export-support-csv/", ExportSupportCSVView.as_view(), name="export_support_csv"),
 ]

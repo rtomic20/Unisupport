@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, FormEvent } from "react";
 import api from "../../api/axios";
+import TimePicker from "../../components/TimePicker";
 
 const TRANSPORT_STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
@@ -29,22 +29,35 @@ const CARE_STATUS_LABELS: Record<string, string> = {
 };
 
 const PLAN_STATUS_COLORS: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
   active: "bg-green-100 text-green-700 border-green-200",
   completed: "bg-blue-100 text-blue-700 border-blue-200",
   cancelled: "bg-red-100 text-red-700 border-red-200",
 };
 const PLAN_STATUS_LABELS: Record<string, string> = {
+  pending: "Na čekanju",
   active: "Aktivno",
   completed: "Završeno",
   cancelled: "Otkazano",
 };
 
 function formatTime(t: string | null) {
-  if (!t) return null;
+  if (!t) return "—";
   return t.slice(0, 5);
 }
 
 type Tab = "transport" | "care" | "plans";
+
+const EMPTY_TRANSPORT_FORM = {
+  request_date: "",
+  end_time: "",
+  description: "",
+  pickup_address: "",
+  dropoff_address: "",
+};
+
+const inputCls =
+  "border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900";
 
 export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("transport");
@@ -53,10 +66,28 @@ export default function StudentDashboard() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  // Transport create form
+  const [showTransportForm, setShowTransportForm] = useState(false);
+  const [transportForm, setTransportForm] = useState(EMPTY_TRANSPORT_FORM);
+  const [transportError, setTransportError] = useState("");
+  const [transportSaving, setTransportSaving] = useState(false);
+
+  // Home care create form
+  const [showCareForm, setShowCareForm] = useState(false);
+  const [careForm, setCareForm] = useState({ appointment_date: "", start_time: "", end_time: "", location: "", description: "" });
+  const [careError, setCareError] = useState("");
+  const [careSaving, setCareSaving] = useState(false);
+
+  // Peer support create form
+  const [showPlanForm, setShowPlanForm] = useState(false);
+  const [planForm, setPlanForm] = useState({ title: "", description: "", start_date: "", end_date: "", total_hours_planned: "" });
+  const [planError, setPlanError] = useState("");
+  const [planSaving, setPlanSaving] = useState(false);
+
+  function loadAll() {
     setLoading(true);
     Promise.all([
-      api.get("/requests/", { params: { type: "transport" } }),
+      api.get("/requests/"),
       api.get("/home-care/appointments/"),
       api.get("/peer-support/plans/"),
     ]).then(([rRes, aRes, pRes]) => {
@@ -64,35 +95,105 @@ export default function StudentDashboard() {
       setAppointments(aRes.data.results ?? aRes.data);
       setPlans(pRes.data.results ?? pRes.data);
     }).finally(() => setLoading(false));
-  }, []);
+  }
 
-  const tabs: { key: Tab; label: string; count: number; color: string }[] = [
-    { key: "transport", label: "Prijevoz", count: requests.length, color: "text-purple-700 border-purple-500" },
-    { key: "care", label: "Njega u domu", count: appointments.length, color: "text-teal-700 border-teal-500" },
-    { key: "plans", label: "Vršnjačka podrška", count: plans.length, color: "text-blue-700 border-blue-500" },
+  useEffect(() => { loadAll(); }, []);
+
+  async function handleCreateTransport(e: FormEvent) {
+    e.preventDefault();
+    setTransportError("");
+    if (!transportForm.request_date || !transportForm.end_time || !transportForm.pickup_address || !transportForm.dropoff_address) {
+      setTransportError("Datum, vrijeme, polazište i odredište su obavezni.");
+      return;
+    }
+    setTransportSaving(true);
+    try {
+      await api.post("/requests/", {
+        request_type: "transport",
+        request_date: transportForm.request_date,
+        end_time: transportForm.end_time + ":00",
+        description: transportForm.description,
+        transport_details: {
+          pickup_address: transportForm.pickup_address,
+          dropoff_address: transportForm.dropoff_address,
+        },
+      });
+      setShowTransportForm(false);
+      setTransportForm(EMPTY_TRANSPORT_FORM);
+      loadAll();
+    } catch (err: any) {
+      const data = err.response?.data;
+      setTransportError(typeof data === "object" ? JSON.stringify(data) : String(data));
+    } finally {
+      setTransportSaving(false);
+    }
+  }
+
+  async function handleCreateCare() {
+    setCareError("");
+    if (!careForm.appointment_date || !careForm.start_time || !careForm.end_time) {
+      setCareError("Datum i vrijeme su obavezni.");
+      return;
+    }
+    setCareSaving(true);
+    try {
+      await api.post("/home-care/appointments/", {
+        appointment_date: careForm.appointment_date,
+        start_time: careForm.start_time,
+        end_time: careForm.end_time,
+        location: careForm.location,
+        description: careForm.description,
+      });
+      setShowCareForm(false);
+      setCareForm({ appointment_date: "", start_time: "", end_time: "", location: "", description: "" });
+      loadAll();
+    } catch (err: any) {
+      setCareError(JSON.stringify(err.response?.data ?? "Greška."));
+    } finally {
+      setCareSaving(false);
+    }
+  }
+
+  async function handleCreatePlan() {
+    setPlanError("");
+    if (!planForm.title || !planForm.start_date || !planForm.total_hours_planned) {
+      setPlanError("Naslov, datum početka i broj sati su obavezni.");
+      return;
+    }
+    setPlanSaving(true);
+    try {
+      await api.post("/peer-support/plans/", {
+        title: planForm.title,
+        description: planForm.description,
+        start_date: planForm.start_date,
+        end_date: planForm.end_date || null,
+        total_hours_planned: Number(planForm.total_hours_planned),
+      });
+      setShowPlanForm(false);
+      setPlanForm({ title: "", description: "", start_date: "", end_date: "", total_hours_planned: "" });
+      loadAll();
+    } catch (err: any) {
+      setPlanError(JSON.stringify(err.response?.data ?? "Greška."));
+    } finally {
+      setPlanSaving(false);
+    }
+  }
+
+  const tabs: { key: Tab; label: string; count: number }[] = [
+    { key: "transport", label: "Prijevoz", count: requests.length },
+    { key: "care", label: "Njega u domu", count: appointments.length },
+    { key: "plans", label: "Vršnjačka podrška", count: plans.length },
   ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
-        Učitavanje...
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Učitavanje...</div>;
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-5">
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="mb-5">
         <h1 className="text-xl font-bold text-gray-800">Moji zahtjevi</h1>
-        <Link
-          to="/student/new-request"
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Novi zahtjev
-        </Link>
+        <p className="text-sm text-gray-500 mt-1">Pregled svih vaših zahtjeva po kategoriji.</p>
       </div>
 
       {/* Tabs */}
@@ -103,188 +204,358 @@ export default function StudentDashboard() {
             onClick={() => setActiveTab(t.key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === t.key
-                ? t.color + " bg-transparent"
+                ? "border-blue-500 text-blue-700"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
             {t.label}
-            <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">
-              {t.count}
-            </span>
+            <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">{t.count}</span>
           </button>
         ))}
       </div>
 
-      {/* Transport tab */}
+      {/* ── PRIJEVOZ TAB ─────────────────────────────── */}
       {activeTab === "transport" && (
-        <div className="space-y-3">
-          {requests.length === 0 ? (
-            <EmptyState
-              icon="🚗"
-              message="Nemaš aktivnih zahtjeva za prijevoz."
-              linkTo="/student/new-request"
-              linkLabel="Kreiraj zahtjev za prijevoz"
-            />
-          ) : (
-            requests.map((r) => (
-              <div key={r.request_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${TRANSPORT_STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                        {TRANSPORT_STATUS_LABELS[r.status] ?? r.status}
-                      </span>
-                      <span className="text-xs px-2.5 py-1 rounded-lg font-medium bg-purple-100 text-purple-700">
-                        🚗 Prijevoz
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-gray-700 mb-1">{r.request_date}</p>
-                    {r.transport_details && (
-                      <div className="text-sm text-gray-600 space-y-0.5">
-                        <p>📍 {r.transport_details.pickup_address}</p>
-                        <p>🏁 {r.transport_details.dropoff_address}</p>
-                      </div>
-                    )}
-                    {r.end_time && (
-                      <p className="text-xs text-gray-500 mt-1.5">Trebam biti u {formatTime(r.end_time)}</p>
-                    )}
-                    {r.status === "accepted" && r.accepted_by_name && (
-                      <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 space-y-1">
-                        <p className="text-xs font-semibold text-blue-700">Vozač preuzima tvoj zahtjev</p>
-                        <p className="text-sm text-blue-800 font-medium">{r.accepted_by_name}</p>
-                        {r.start_time && (
-                          <p className="text-sm text-blue-700">Dolazak po tebe u <span className="font-bold">{formatTime(r.start_time)}</span></p>
-                        )}
-                      </div>
-                    )}
-                    {r.description && (
-                      <p className="text-xs text-gray-400 italic mt-2">"{r.description}"</p>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-300 shrink-0">#{r.request_id}</span>
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-gray-600">Zahtjevi za prijevoz i stare usluge.</p>
+            </div>
+            <button
+              onClick={() => { setTransportForm(EMPTY_TRANSPORT_FORM); setTransportError(""); setShowTransportForm(true); }}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              + Novi zahtjev za prijevoz
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left text-gray-500 text-xs uppercase">
+                    <th className="px-4 py-3">Tip</th>
+                    <th className="px-4 py-3">Datum</th>
+                    <th className="px-4 py-3">Detalji</th>
+                    <th className="px-4 py-3">Vozač / prihvatio</th>
+                    <th className="px-4 py-3">Dolazak do</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {requests.length === 0 ? (
+                    <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Nema zahtjeva za prijevoz.</td></tr>
+                  ) : (
+                    requests.map((r) => (
+                      <tr key={r.request_id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${r.request_type === "transport" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
+                            {r.request_type === "transport" ? "🚗 Prijevoz" : "🛠️ Usluga"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{r.request_date}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {r.request_type === "transport" && r.transport_details
+                            ? <span>{r.transport_details.pickup_address} → {r.transport_details.dropoff_address}</span>
+                            : r.service_details
+                              ? <span>{r.service_details.service_category}{r.service_details.location ? ` · ${r.service_details.location}` : ""}</span>
+                              : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{r.accepted_by_name || "—"}</td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatTime(r.end_time)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${TRANSPORT_STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                            {TRANSPORT_STATUS_LABELS[r.status] ?? r.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Transport create modal */}
+          {showTransportForm && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                  <h2 className="font-semibold text-gray-900">Novi zahtjev za prijevoz</h2>
+                  <button onClick={() => setShowTransportForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
                 </div>
+                <form onSubmit={handleCreateTransport} className="p-5 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Datum *</label>
+                    <input type="date" required value={transportForm.request_date}
+                      onChange={(e) => setTransportForm({ ...transportForm, request_date: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Trebam biti na odredištu u *</label>
+                    <TimePicker value={transportForm.end_time} onChange={(v) => setTransportForm({ ...transportForm, end_time: v })} required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Polazište *</label>
+                    <input type="text" required placeholder="Ulica i broj, grad"
+                      value={transportForm.pickup_address}
+                      onChange={(e) => setTransportForm({ ...transportForm, pickup_address: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Odredište *</label>
+                    <input type="text" required placeholder="Ulica i broj, grad"
+                      value={transportForm.dropoff_address}
+                      onChange={(e) => setTransportForm({ ...transportForm, dropoff_address: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Napomena (opcionalno)</label>
+                    <textarea rows={2} placeholder="Dodatne napomene..."
+                      value={transportForm.description}
+                      onChange={(e) => setTransportForm({ ...transportForm, description: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  {transportError && <p className="text-red-600 text-sm">{transportError}</p>}
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button type="button" onClick={() => setShowTransportForm(false)}
+                      className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Odustani</button>
+                    <button type="submit" disabled={transportSaving}
+                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                      {transportSaving ? "Šaljem..." : "Pošalji zahtjev"}
+                    </button>
+                  </div>
+                </form>
               </div>
-            ))
+            </div>
           )}
         </div>
       )}
 
-      {/* Njega u domu tab */}
+      {/* ── NJEGA U DOMU TAB ─────────────────────────── */}
       {activeTab === "care" && (
-        <div className="space-y-3">
-          {appointments.length === 0 ? (
-            <EmptyState
-              icon="🏠"
-              message="Nemaš evidentiranih termina njege u domu."
-              linkTo="/student/appointments"
-              linkLabel="Zatraži termin njege"
-            />
-          ) : (
-            appointments.map((a) => (
-              <div key={a.appointment_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${CARE_STATUS_COLORS[a.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                        {CARE_STATUS_LABELS[a.status] ?? a.status}
-                      </span>
-                      <span className="text-xs px-2.5 py-1 rounded-lg font-medium bg-teal-100 text-teal-700">
-                        🏠 Njega u domu
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-gray-700 mb-1">{a.appointment_date}</p>
-                    <p className="text-sm text-gray-600">
-                      {formatTime(a.start_time)} – {formatTime(a.end_time)}
-                      {a.location ? ` · ${a.location}` : ""}
-                    </p>
-                    {(a.status === "assigned" || a.status === "completed") && a.caregiver_name && (
-                      <div className="mt-3 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2.5">
-                        <p className="text-xs font-semibold text-teal-700">Njegovatelj preuzima tvoj zahtjev:</p>
-                        <p className="text-sm text-teal-800 font-medium mt-0.5">{a.caregiver_name}</p>
-                      </div>
-                    )}
-                    {a.description && (
-                      <p className="text-xs text-gray-400 italic mt-2">"{a.description}"</p>
-                    )}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-gray-600">Pregled i zahtjev za termine kućne njege.</p>
+            </div>
+            <button
+              onClick={() => { setCareForm({ appointment_date: "", start_time: "", end_time: "", location: "", description: "" }); setCareError(""); setShowCareForm(true); }}
+              className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+            >
+              + Zatraži termin njege
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left text-gray-500 text-xs uppercase">
+                    <th className="px-4 py-3">Datum</th>
+                    <th className="px-4 py-3">Vrijeme</th>
+                    <th className="px-4 py-3">Lokacija</th>
+                    <th className="px-4 py-3">Njegovatelj/ica</th>
+                    <th className="px-4 py-3">Opis</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {appointments.length === 0 ? (
+                    <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Nema termina njege u domu.</td></tr>
+                  ) : (
+                    appointments.map((a) => (
+                      <tr key={a.appointment_id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-medium">{a.appointment_date}</td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatTime(a.start_time)} – {formatTime(a.end_time)}</td>
+                        <td className="px-4 py-3 text-gray-600">{a.location || "—"}</td>
+                        <td className="px-4 py-3 text-gray-700 font-medium">{a.caregiver_name || "—"}</td>
+                        <td className="px-4 py-3 text-gray-500 max-w-xs">
+                          {a.description ? <span className="italic text-xs">{a.description}</span> : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${CARE_STATUS_COLORS[a.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                            {CARE_STATUS_LABELS[a.status] ?? a.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Care create modal */}
+          {showCareForm && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                  <h2 className="font-semibold text-gray-900">Zatraži termin njege</h2>
+                  <button onClick={() => setShowCareForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                </div>
+                <div className="p-5 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Datum *</label>
+                    <input type="date" value={careForm.appointment_date}
+                      onChange={(e) => setCareForm({ ...careForm, appointment_date: e.target.value })}
+                      className={inputCls} />
                   </div>
-                  <span className="text-xs text-gray-300 shrink-0">#{a.appointment_id}</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Početak *</label>
+                      <input type="time" value={careForm.start_time}
+                        onChange={(e) => setCareForm({ ...careForm, start_time: e.target.value })}
+                        className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Kraj *</label>
+                      <input type="time" value={careForm.end_time}
+                        onChange={(e) => setCareForm({ ...careForm, end_time: e.target.value })}
+                        className={inputCls} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Lokacija</label>
+                    <input type="text" placeholder="npr. Dom studenta, soba 204"
+                      value={careForm.location}
+                      onChange={(e) => setCareForm({ ...careForm, location: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Opis (opcionalno)</label>
+                    <textarea rows={2} placeholder="Što vam treba..."
+                      value={careForm.description}
+                      onChange={(e) => setCareForm({ ...careForm, description: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  {careError && <p className="text-red-600 text-sm">{careError}</p>}
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button onClick={() => setShowCareForm(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Odustani</button>
+                    <button onClick={handleCreateCare} disabled={careSaving}
+                      className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50">
+                      {careSaving ? "Sprema..." : "Pošalji zahtjev"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))
+            </div>
           )}
         </div>
       )}
 
-      {/* Vršnjačka podrška tab */}
+      {/* ── VRŠNJAČKA PODRŠKA TAB ───────────────────── */}
       {activeTab === "plans" && (
-        <div className="space-y-3">
-          {plans.length === 0 ? (
-            <EmptyState
-              icon="🤝"
-              message="Nemaš aktivnih planova vršnjačke podrške."
-              linkTo="/student/support-plans"
-              linkLabel="Zatraži plan podrške"
-            />
-          ) : (
-            plans.map((p) => (
-              <div key={p.plan_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${PLAN_STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                        {PLAN_STATUS_LABELS[p.status] ?? p.status}
-                      </span>
-                      <span className="text-xs px-2.5 py-1 rounded-lg font-medium bg-blue-100 text-blue-700">
-                        🤝 Vršnjačka podrška
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-gray-700 mb-1">{p.title}</p>
-                    <p className="text-xs text-gray-500">
-                      {p.start_date}{p.end_date ? ` – ${p.end_date}` : ""}
-                    </p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-600">
-                      <span>Planirano: <span className="font-medium text-gray-700">{p.total_hours_planned}h</span></span>
-                      <span>Odrađeno: <span className="font-medium text-blue-700">{p.total_hours_done}h</span></span>
-                    </div>
-                    {p.assistant_name && (
-                      <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
-                        <p className="text-xs font-semibold text-blue-700">Asistent preuzima tvoj zahtjev</p>
-                        <p className="text-sm text-blue-800 font-medium mt-0.5">{p.assistant_name}</p>
-                      </div>
-                    )}
-                    {p.description && (
-                      <p className="text-xs text-gray-400 italic mt-2">"{p.description}"</p>
-                    )}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-gray-600">Pregled vaših planova vršnjačke podrške i sesija s asistentom.</p>
+            </div>
+            <button
+              onClick={() => { setPlanForm({ title: "", description: "", start_date: "", end_date: "", total_hours_planned: "" }); setPlanError(""); setShowPlanForm(true); }}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              + Zatraži plan podrške
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left text-gray-500 text-xs uppercase">
+                    <th className="px-4 py-3">Naziv plana</th>
+                    <th className="px-4 py-3">Asistent</th>
+                    <th className="px-4 py-3">Početak</th>
+                    <th className="px-4 py-3">Kraj</th>
+                    <th className="px-4 py-3 text-right">Plan. sati</th>
+                    <th className="px-4 py-3 text-right">Odrađeno</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {plans.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">Nema planova vršnjačke podrške.</td></tr>
+                  ) : (
+                    plans.map((p) => (
+                      <tr key={p.plan_id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-gray-800">{p.title}</td>
+                        <td className="px-4 py-3 text-gray-600">{p.assistant_name || "—"}</td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.start_date}</td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.end_date || "—"}</td>
+                        <td className="px-4 py-3 text-right font-medium text-gray-700">{p.total_hours_planned}h</td>
+                        <td className="px-4 py-3 text-right font-medium text-blue-700">{p.total_hours_done}h</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${PLAN_STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                            {PLAN_STATUS_LABELS[p.status] ?? p.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Plan create modal */}
+          {showPlanForm && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                  <h2 className="font-semibold text-gray-900">Zatraži plan podrške</h2>
+                  <button onClick={() => setShowPlanForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                </div>
+                <div className="p-5 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Naslov *</label>
+                    <input type="text" placeholder="npr. Podrška pri kretanju"
+                      value={planForm.title}
+                      onChange={(e) => setPlanForm({ ...planForm, title: e.target.value })}
+                      className={inputCls} />
                   </div>
-                  <span className="text-xs text-gray-300 shrink-0">#{p.plan_id}</span>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Opis</label>
+                    <textarea rows={2} placeholder="Opišite vrstu podrške..."
+                      value={planForm.description}
+                      onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Datum početka *</label>
+                      <input type="date" value={planForm.start_date}
+                        onChange={(e) => setPlanForm({ ...planForm, start_date: e.target.value })}
+                        className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Datum završetka</label>
+                      <input type="date" value={planForm.end_date}
+                        onChange={(e) => setPlanForm({ ...planForm, end_date: e.target.value })}
+                        className={inputCls} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Planirani broj sati *</label>
+                    <input type="number" min={1} placeholder="npr. 20"
+                      value={planForm.total_hours_planned}
+                      onChange={(e) => setPlanForm({ ...planForm, total_hours_planned: e.target.value })}
+                      className={inputCls} />
+                  </div>
+                  {planError && <p className="text-red-600 text-sm">{planError}</p>}
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button onClick={() => setShowPlanForm(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Odustani</button>
+                    <button onClick={handleCreatePlan} disabled={planSaving}
+                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                      {planSaving ? "Slanje..." : "Pošalji zahtjev"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))
+            </div>
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function EmptyState({
-  icon,
-  message,
-  linkTo,
-  linkLabel,
-}: {
-  icon: string;
-  message: string;
-  linkTo: string;
-  linkLabel: string;
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-      <div className="text-4xl mb-3">{icon}</div>
-      <p className="text-gray-500 text-sm">{message}</p>
-      <Link to={linkTo} className="mt-3 inline-block text-sm text-blue-600 hover:underline font-medium">
-        {linkLabel}
-      </Link>
     </div>
   );
 }

@@ -14,10 +14,17 @@ interface Survey {
   questions: Question[];
 }
 
+interface Answer {
+  question: number;
+  question_text: string;
+  answer_text: string;
+}
+
 interface SurveyResponse {
   response_id: number;
   survey: number;
   submitted_at: string;
+  answers: Answer[];
 }
 
 interface AnswerDraft {
@@ -176,6 +183,7 @@ export default function SurveysPage() {
   const [loading, setLoading] = useState(true);
   // Track newly completed survey IDs in this session
   const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
+  const [expandedResponses, setExpandedResponses] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -265,26 +273,61 @@ export default function SurveysPage() {
               return (
                 <div
                   key={survey.survey_id}
-                  className="px-5 py-4 flex items-center justify-between gap-3"
+                  className="px-5 py-4"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">
-                      {survey.title}
-                    </p>
-                    {dateStr && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Ispunjeno: {formatDate(dateStr)}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-700">
+                        {survey.title}
                       </p>
-                    )}
-                    {!dateStr && completedIds.has(survey.survey_id) && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Ispunjeno upravo
-                      </p>
-                    )}
+                      {dateStr && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Ispunjeno: {formatDate(dateStr)}
+                        </p>
+                      )}
+                      {!dateStr && completedIds.has(survey.survey_id) && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Ispunjeno upravo
+                        </p>
+                      )}
+                      {(() => {
+                        const r = responses.find((resp) => resp.survey === survey.survey_id);
+                        if (!r || !r.answers || r.answers.length === 0) return null;
+                        const isExpanded = expandedResponses.has(survey.survey_id);
+                        return (
+                          <div className="mt-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedResponses((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(survey.survey_id)) next.delete(survey.survey_id);
+                                  else next.add(survey.survey_id);
+                                  return next;
+                                });
+                              }}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              {isExpanded ? "Sakrij odgovore ▲" : "Pogledaj odgovore ▼"}
+                            </button>
+                            {isExpanded && (
+                              <div className="mt-2 space-y-2">
+                                {r.answers.map((a, i) => (
+                                  <div key={i} className="text-xs bg-gray-50 rounded-lg px-3 py-2">
+                                    <p className="font-medium text-gray-600">{a.question_text || `Pitanje ${i + 1}`}</p>
+                                    <p className="text-gray-800 mt-0.5">{a.answer_text || "—"}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <span className="text-xs px-2.5 py-1 rounded-lg border font-medium bg-blue-100 text-blue-700 border-blue-200 whitespace-nowrap shrink-0">
+                      Ispunjeno
+                    </span>
                   </div>
-                  <span className="text-xs px-2.5 py-1 rounded-lg border font-medium bg-blue-100 text-blue-700 border-blue-200 whitespace-nowrap">
-                    Ispunjeno
-                  </span>
                 </div>
               );
             })}

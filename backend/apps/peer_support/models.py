@@ -3,6 +3,7 @@ from django.db import models
 
 class SupportPlan(models.Model):
     STATUS_CHOICES = [
+        ("pending", "Pending"),
         ("active", "Active"),
         ("completed", "Completed"),
         ("cancelled", "Cancelled"),
@@ -26,7 +27,7 @@ class SupportPlan(models.Model):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     total_hours_planned = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

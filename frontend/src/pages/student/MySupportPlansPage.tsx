@@ -21,6 +21,10 @@ interface Plan {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
+  pending: {
+    label: "Na čekanju",
+    classes: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  },
   active: {
     label: "Aktivno",
     classes: "bg-green-100 text-green-700 border-green-200",
@@ -193,9 +197,10 @@ export default function MySupportPlansPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-800">
-          Moji planovi podrške
-        </h1>
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">Moji planovi podrške</h1>
+          <p className="text-sm text-gray-500 mt-1">Pregled vaših planova vršnjačke podrške i sesija s asistentom.</p>
+        </div>
         <button
           onClick={() => { setPlanForm(EMPTY_PLAN_FORM); setPlanFormError(""); setShowForm(true); }}
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
