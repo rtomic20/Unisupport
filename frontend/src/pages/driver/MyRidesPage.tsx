@@ -44,11 +44,11 @@ export default function MyRidesPage() {
     if (!newPickupTime) return;
     setSaving(true);
     try {
-      await api.post(`/requests/${id}/accept/`, { pickup_time: newPickupTime + ":00" });
+      await api.patch(`/requests/${id}/`, { start_time: newPickupTime + ":00" });
       setEditingPickup(null);
       load();
-    } catch {
-      // noop
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Greška pri izmjeni vremena.");
     } finally {
       setSaving(false);
     }
