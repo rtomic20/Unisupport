@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 from .models import Survey, SurveyQuestion, SurveyResponse, SurveyAnswer
 
@@ -40,21 +41,26 @@ class SurveyResponseSerializer(serializers.ModelSerializer):
 class SurveySerializer(serializers.ModelSerializer):
     questions = SurveyQuestionSerializer(many=True, required=False)
     response_count = serializers.SerializerMethodField()
+    questions_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Survey
         fields = [
             "survey_id", "title", "description", "created_by",
-            "created_at", "is_active", "questions", "response_count",
+            "created_at", "is_active", "questions", "response_count", "questions_count",
         ]
         read_only_fields = ["survey_id", "created_by", "created_at"]
 
     def get_response_count(self, obj):
         return obj.responses.count()
 
+    def get_questions_count(self, obj):
+        return obj.questions.count()
+
+    @transaction.atomic
     def create(self, validated_data):
         questions_data = validated_data.pop("questions", [])
         survey = Survey.objects.create(**validated_data)
-        for i, q in enumerate(questions_data):
-            SurveyQuestion.objects.create(survey=survey, order=i, **q)
+        for q in questions_data:
+            SurveyQuestion.objects.create(survey=survey, **q)
         return survey

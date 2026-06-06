@@ -98,7 +98,7 @@ export default function HomeCareAdminPage() {
     setFormSaving(true);
     try {
       await api.post("/home-care/appointments/", {
-        student_id: Number(form.student_id),
+        student: Number(form.student_id),
         appointment_date: form.appointment_date,
         start_time: form.start_time,
         end_time: form.end_time,
@@ -150,7 +150,7 @@ export default function HomeCareAdminPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Kućna njega — Termini</h1>
+        <h1 className="text-xl font-bold text-gray-900">Njega u domu</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"

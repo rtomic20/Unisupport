@@ -106,6 +106,12 @@ export default function RequestsPage() {
                       Dodijeli
                     </button>
                   )}
+                  {r.request_type === "service" && r.status === "pending" && (
+                    <button onClick={() => changeStatus(r.request_id, "accept")}
+                      className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-100">
+                      Prihvati
+                    </button>
+                  )}
                   {r.status === "accepted" && (
                     <button onClick={() => changeStatus(r.request_id, "complete")}
                       className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded hover:bg-green-100">

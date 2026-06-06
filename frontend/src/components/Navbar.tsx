@@ -5,6 +5,7 @@ const roleLinks: Record<string, { label: string; to: string }[]> = {
   admin: [
     { label: "Dashboard", to: "/admin/dashboard" },
     { label: "Zahtjevi", to: "/admin/requests" },
+    { label: "Prijevoz", to: "/admin/transport" },
     { label: "Njega u domu", to: "/admin/home-care" },
     { label: "Vršnjačka podrška", to: "/admin/peer-support" },
     { label: "Ankete", to: "/admin/surveys" },

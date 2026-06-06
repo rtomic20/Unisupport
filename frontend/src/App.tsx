@@ -10,6 +10,7 @@ import RolesPage from "./pages/admin/RolesPage";
 import RequestsPage from "./pages/admin/RequestsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import HomeCareAdminPage from "./pages/admin/HomeCareAdminPage";
+import AdminTransportPage from "./pages/admin/AdminTransportPage";
 import PeerSupportAdminPage from "./pages/admin/PeerSupportAdminPage";
 import SurveysAdminPage from "./pages/admin/SurveysAdminPage";
 
@@ -76,6 +77,9 @@ export default function App() {
           } />
           <Route path="/admin/reports" element={
             <PrivateRoute role="admin"><Layout><ReportsPage /></Layout></PrivateRoute>
+          } />
+          <Route path="/admin/transport" element={
+            <PrivateRoute role="admin"><Layout><AdminTransportPage /></Layout></PrivateRoute>
           } />
           <Route path="/admin/home-care" element={
             <PrivateRoute role="admin"><Layout><HomeCareAdminPage /></Layout></PrivateRoute>

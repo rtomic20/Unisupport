@@ -85,18 +85,21 @@ class RequestViewSet(ModelViewSet):
                 {"detail": "Only pending requests can be accepted."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if req.request_type != "transport":
+        user_role = request.user.role_name
+        if req.request_type != "transport" and user_role != "admin":
             return Response(
                 {"detail": "Drivers can only accept transport requests."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        pickup_time = request.data.get("pickup_time")
-        if not pickup_time:
-            return Response(
-                {"detail": "pickup_time je obavezan."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        req.start_time = pickup_time
+        if req.request_type == "transport":
+            pickup_time = request.data.get("pickup_time")
+            if not pickup_time and user_role != "admin":
+                return Response(
+                    {"detail": "pickup_time je obavezan."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if pickup_time:
+                req.start_time = pickup_time
         req.status = "accepted"
         req.accepted_by = request.user
         req.accepted_at = timezone.now()
@@ -146,5 +149,8 @@ class RequestViewSet(ModelViewSet):
         req.accepted_by = driver
         req.accepted_at = timezone.now()
         req.status = "accepted"
+        pickup_time = request.data.get("pickup_time")
+        if pickup_time:
+            req.start_time = pickup_time
         req.save()
         return Response(RequestSerializer(req).data)

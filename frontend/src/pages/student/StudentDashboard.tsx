@@ -94,7 +94,8 @@ export default function StudentDashboard() {
                   {/* Service detalji */}
                   {r.request_type === "service" && r.service_details && (
                     <p className="text-sm text-gray-600">
-                      {r.service_details.service_category} — {r.service_details.location}
+                      {r.service_details.service_category}
+                      {r.service_details.location ? ` – ${r.service_details.location}` : ""}
                     </p>
                   )}
 

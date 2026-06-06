@@ -133,8 +133,8 @@ export default function PeerSupportAdminPage() {
     setFormSaving(true);
     try {
       await api.post("/peer-support/plans/", {
-        student_id: Number(form.student_id),
-        assistant_id: Number(form.assistant_id),
+        student: Number(form.student_id),
+        assistant: Number(form.assistant_id),
         title: form.title,
         description: form.description,
         start_date: form.start_date,
@@ -174,7 +174,7 @@ export default function PeerSupportAdminPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Peer podrška — Planovi</h1>
+        <h1 className="text-xl font-bold text-gray-900">Vršnjačka podrška</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -282,18 +282,14 @@ export default function PeerSupportAdminPage() {
                             <thead>
                               <tr className="bg-gray-100 text-gray-500 text-left">
                                 <th className="px-3 py-2">Datum</th>
-                                <th className="px-3 py-2">Vrijeme</th>
                                 <th className="px-3 py-2">Sati</th>
                                 <th className="px-3 py-2">Bilješke</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-100">
-                              {sessions.map((s) => (
-                                <tr key={s.id} className="hover:bg-gray-50">
-                                  <td className="px-3 py-2 text-gray-700">{s.date}</td>
-                                  <td className="px-3 py-2 text-gray-700">
-                                    {s.start_time?.slice(0, 5)} – {s.end_time?.slice(0, 5)}
-                                  </td>
+                              {sessions.map((s: any) => (
+                                <tr key={s.session_id} className="hover:bg-gray-50">
+                                  <td className="px-3 py-2 text-gray-700">{s.session_date}</td>
                                   <td className="px-3 py-2 text-gray-700">{s.hours} h</td>
                                   <td className="px-3 py-2 text-gray-500">{s.notes || "—"}</td>
                                 </tr>

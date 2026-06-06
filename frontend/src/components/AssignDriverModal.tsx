@@ -17,6 +17,7 @@ interface Props {
 export default function AssignDriverModal({ requestId, onClose, onAssigned }: Props) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedId, setSelectedId] = useState<number | "">("");
+  const [pickupTime, setPickupTime] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,7 +30,9 @@ export default function AssignDriverModal({ requestId, onClose, onAssigned }: Pr
     setSaving(true);
     setError("");
     try {
-      await api.post(`/requests/${requestId}/assign_driver/`, { driver_id: selectedId });
+      const body: any = { driver_id: selectedId };
+      if (pickupTime) body.pickup_time = pickupTime;
+      await api.post(`/requests/${requestId}/assign_driver/`, body);
       onAssigned();
       onClose();
     } catch (err: any) {
@@ -58,6 +61,17 @@ export default function AssignDriverModal({ requestId, onClose, onAssigned }: Pr
               </option>
             ))}
           </select>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Vrijeme preuzimanja (opcionalno)
+            </label>
+            <input
+              type="time"
+              value={pickupTime}
+              onChange={(e) => setPickupTime(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex justify-end gap-2">
             <button

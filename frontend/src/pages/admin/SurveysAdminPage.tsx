@@ -121,6 +121,16 @@ export default function SurveysAdminPage() {
     }
   }
 
+  async function handleDelete(survey: Survey) {
+    if (!confirm(`Obriši anketu "${survey.title}"? Ovo se ne može poništiti.`)) return;
+    try {
+      await api.delete(`/surveys/${survey.id}/`);
+      load();
+    } catch {
+      alert("Greška pri brisanju ankete.");
+    }
+  }
+
   async function openResponses(survey: Survey) {
     setResponsesModal(survey);
     setResponses([]);
@@ -209,6 +219,13 @@ export default function SurveysAdminPage() {
                         aria-label={`Pregledaj odgovore za anketu ${s.title}`}
                       >
                         Odgovori
+                      </button>
+                      <button
+                        onClick={() => handleDelete(s)}
+                        className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-400"
+                        aria-label={`Obriši anketu ${s.title}`}
+                      >
+                        Obriši
                       </button>
                     </div>
                   </td>

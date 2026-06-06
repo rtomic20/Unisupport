@@ -125,10 +125,9 @@ class ExportRidesCSVView(APIView):
             ),
             request.query_params,
         )
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
         response["Content-Disposition"] = 'attachment; filename="voznje.csv"'
-        response.write("﻿")  # BOM za Excel
-        writer = csv.writer(response)
+        writer = csv.writer(response, delimiter=";")
         writer.writerow(["ID", "Datum", "Student", "Vozač", "Polazište", "Odredište", "Status"])
         for r in qs:
             td = getattr(r, "transport_details", None)
