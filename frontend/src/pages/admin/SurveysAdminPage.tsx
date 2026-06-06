@@ -8,13 +8,13 @@ interface Question {
 }
 
 interface Survey {
-  id: number;
+  survey_id: number;
   title: string;
   description: string;
   is_active: boolean;
   created_at: string;
   questions_count: number;
-  responses_count: number;
+  response_count: number;
 }
 
 interface Answer {
@@ -114,7 +114,7 @@ export default function SurveysAdminPage() {
 
   async function handleToggleActive(survey: Survey) {
     try {
-      await api.patch(`/surveys/${survey.id}/`, { is_active: !survey.is_active });
+      await api.patch(`/surveys/${survey.survey_id}/`, { is_active: !survey.is_active });
       load();
     } catch {
       alert("Greška pri promjeni statusa ankete.");
@@ -124,7 +124,7 @@ export default function SurveysAdminPage() {
   async function handleDelete(survey: Survey) {
     if (!confirm(`Obriši anketu "${survey.title}"? Ovo se ne može poništiti.`)) return;
     try {
-      await api.delete(`/surveys/${survey.id}/`);
+      await api.delete(`/surveys/${survey.survey_id}/`);
       load();
     } catch {
       alert("Greška pri brisanju ankete.");
@@ -136,7 +136,7 @@ export default function SurveysAdminPage() {
     setResponses([]);
     setResponsesLoading(true);
     try {
-      const { data } = await api.get(`/surveys/${survey.id}/responses/`);
+      const { data } = await api.get(`/surveys/${survey.survey_id}/responses/`);
       setResponses(data.results ?? data);
     } catch {
       setResponses([]);
@@ -187,7 +187,7 @@ export default function SurveysAdminPage() {
                 <tr key={s.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{s.title}</td>
                   <td className="px-4 py-3 text-gray-700">{s.questions_count ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-700">{s.responses_count ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">{s.response_count ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`text-xs px-2 py-0.5 rounded font-medium ${
