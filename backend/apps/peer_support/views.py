@@ -71,6 +71,20 @@ class SupportSessionViewSet(ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
+        from django.db.models import Sum
+        from rest_framework.exceptions import ValidationError
+        plan = serializer.validated_data.get("plan")
+        new_hours = serializer.validated_data.get("hours", 0)
+        if plan:
+            done = plan.sessions.aggregate(total=Sum("hours"))["total"] or 0
+            if float(done) + float(new_hours) > float(plan.total_hours_planned):
+                remaining = float(plan.total_hours_planned) - float(done)
+                raise ValidationError({
+                    "hours": (
+                        f"Prekoračenje planiranog vremena. "
+                        f"Preostalo: {remaining:.2f}h, pokušavate dodati: {float(new_hours):.2f}h."
+                    )
+                })
         serializer.save(logged_by=self.request.user)
 
     def get_permissions(self):

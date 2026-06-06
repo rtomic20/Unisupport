@@ -4,7 +4,7 @@ import api from "../../api/axios";
 interface Appointment {
   appointment_id: number;
   student_name: string;
-  date: string;
+  appointment_date: string;
   start_time: string;
   end_time: string;
   location: string;
@@ -26,17 +26,13 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Otkazano",
 };
 
-function getTodayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function formatTime(t: string | null): string {
   if (!t) return "—";
   return t.slice(0, 5);
 }
 
 export default function CaregiverSchedulePage() {
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayISO());
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [completing, setCompleting] = useState<number | null>(null);
@@ -45,17 +41,19 @@ export default function CaregiverSchedulePage() {
   function load(date: string) {
     setLoading(true);
     setError("");
+    const params: Record<string, string> = {};
+    if (date) params.date = date;
     api
-      .get<Appointment[] | { results: Appointment[] }>("/home-care/appointments/", {
-        params: { date },
-      })
+      .get<Appointment[] | { results: Appointment[] }>("/home-care/appointments/", { params })
       .then((res) => {
         const raw = Array.isArray(res.data)
           ? res.data
           : (res.data as { results: Appointment[] }).results ?? [];
-        const sorted = [...raw].sort((a, b) =>
-          (a.start_time ?? "").localeCompare(b.start_time ?? "")
-        );
+        const sorted = [...raw].sort((a, b) => {
+          const dateCompare = (a.appointment_date ?? "").localeCompare(b.appointment_date ?? "");
+          if (dateCompare !== 0) return dateCompare;
+          return (a.start_time ?? "").localeCompare(b.start_time ?? "");
+        });
         setAppointments(sorted);
       })
       .catch(() => setError("Greška pri učitavanju termina."))
@@ -80,27 +78,30 @@ export default function CaregiverSchedulePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-800">Moj raspored</h1>
-        <p className="text-sm text-gray-500 mt-1">Pregledajte termine po datumu.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          {selectedDate ? `Termini za datum: ${selectedDate}` : "Svi vaši termini"}
+        </p>
       </div>
 
       {/* Date picker */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 mb-5 flex items-center gap-3 flex-wrap">
-        <label className="text-sm font-medium text-gray-600">Datum:</label>
+        <label className="text-sm font-medium text-gray-600">Filtriraj po datumu:</label>
         <input
           type="date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button
-          onClick={() => setSelectedDate(getTodayISO())}
-          className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-        >
-          Danas
-        </button>
+        {selectedDate && (
+          <button
+            onClick={() => setSelectedDate("")}
+            className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+          >
+            Prikaži sve
+          </button>
+        )}
       </div>
 
       {error && (
@@ -116,7 +117,9 @@ export default function CaregiverSchedulePage() {
       ) : appointments.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
           <div className="text-4xl mb-3">📅</div>
-          <p className="text-gray-500 text-sm">Nema termina za odabrani datum.</p>
+          <p className="text-gray-500 text-sm">
+            {selectedDate ? "Nema termina za odabrani datum." : "Nema dodijeljenih termina."}
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -124,6 +127,7 @@ export default function CaregiverSchedulePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left text-gray-500 text-xs uppercase">
+                  <th className="px-4 py-3">Datum</th>
                   <th className="px-4 py-3">Početak</th>
                   <th className="px-4 py-3">Kraj</th>
                   <th className="px-4 py-3">Student</th>
@@ -137,12 +141,15 @@ export default function CaregiverSchedulePage() {
                 {appointments.map((appt) => (
                   <tr key={appt.appointment_id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
+                      {appt.appointment_date}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
                       {formatTime(appt.start_time)}
                     </td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                       {formatTime(appt.end_time)}
                     </td>
-                    <td className="px-4 py-3 text-gray-700 font-medium">
+                    <td className="px-4 py-3 text-gray-700 font-semibold">
                       {appt.student_name}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{appt.location || "—"}</td>
@@ -156,8 +163,7 @@ export default function CaregiverSchedulePage() {
                     <td className="px-4 py-3">
                       <span
                         className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${
-                          STATUS_COLORS[appt.status] ??
-                          "bg-gray-100 text-gray-600 border-gray-200"
+                          STATUS_COLORS[appt.status] ?? "bg-gray-100 text-gray-600 border-gray-200"
                         }`}
                       >
                         {STATUS_LABELS[appt.status] ?? appt.status}

@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsAdmin
+from apps.home_care.models import HomeAppointment
+from apps.peer_support.models import SupportSession
 from .models import Request
 
 
@@ -77,20 +79,71 @@ class RidesPerDriverView(APIView):
         return Response(result)
 
 
+class CareAppointmentsPerCaregiverView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        params = request.query_params
+        qs = HomeAppointment.objects.filter(caregiver__isnull=False)
+        if params.get("from"):
+            qs = qs.filter(appointment_date__gte=params["from"])
+        if params.get("to"):
+            qs = qs.filter(appointment_date__lte=params["to"])
+        if params.get("student_id"):
+            qs = qs.filter(student_id=params["student_id"])
+        data = (
+            qs.values("caregiver__user_id", "caregiver__first_name", "caregiver__last_name")
+            .annotate(count=Count("appointment_id"))
+            .order_by("-count")
+        )
+        return Response([
+            {
+                "user_id": r["caregiver__user_id"],
+                "full_name": f"{r['caregiver__first_name']} {r['caregiver__last_name']}",
+                "count": r["count"],
+            }
+            for r in data
+        ])
+
+
+class SupportHoursPerAssistantView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        params = request.query_params
+        qs = SupportSession.objects.filter(plan__assistant__isnull=False)
+        if params.get("from"):
+            qs = qs.filter(session_date__gte=params["from"])
+        if params.get("to"):
+            qs = qs.filter(session_date__lte=params["to"])
+        if params.get("student_id"):
+            qs = qs.filter(plan__student_id=params["student_id"])
+        data = (
+            qs.values("plan__assistant__user_id", "plan__assistant__first_name", "plan__assistant__last_name")
+            .annotate(total=Sum("hours"))
+            .order_by("-total")
+        )
+        return Response([
+            {
+                "user_id": r["plan__assistant__user_id"],
+                "full_name": f"{r['plan__assistant__first_name']} {r['plan__assistant__last_name']}",
+                "count": float(r["total"]),
+            }
+            for r in data
+        ])
+
+
 class UnifiedReportView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        from apps.home_care.models import HomeAppointment
-        from apps.peer_support.models import SupportSession
-
         params = request.query_params
         date_from = params.get("from")
         date_to = params.get("to")
         student_id = params.get("student_id")
 
         rides_qs = Request.objects.filter(request_type="transport")
-        care_qs = HomeAppointment.objects.filter(status="completed")
+        care_qs = HomeAppointment.objects.all()
         sessions_qs = SupportSession.objects.all()
 
         if date_from:
