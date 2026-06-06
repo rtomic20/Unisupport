@@ -184,7 +184,7 @@ export default function SurveysAdminPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {surveys.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
+                <tr key={s.survey_id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{s.title}</td>
                   <td className="px-4 py-3 text-gray-700">{s.questions_count ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{s.response_count ?? "—"}</td>
