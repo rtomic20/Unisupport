@@ -16,6 +16,7 @@ import SurveysAdminPage from "./pages/admin/SurveysAdminPage";
 
 import StudentDashboard from "./pages/student/StudentDashboard";
 import NewRequestPage from "./pages/student/NewRequestPage";
+import TransportPage from "./pages/student/TransportPage";
 import MyAppointmentsPage from "./pages/student/MyAppointmentsPage";
 import MySupportPlansPage from "./pages/student/MySupportPlansPage";
 import SurveysPage from "./pages/student/SurveysPage";
@@ -97,6 +98,9 @@ export default function App() {
           } />
           <Route path="/student/new-request" element={
             <PrivateRoute role="student"><Layout><NewRequestPage /></Layout></PrivateRoute>
+          } />
+          <Route path="/student/transport" element={
+            <PrivateRoute role="student"><Layout><TransportPage /></Layout></PrivateRoute>
           } />
           <Route path="/student/appointments" element={
             <PrivateRoute role="student"><Layout><MyAppointmentsPage /></Layout></PrivateRoute>

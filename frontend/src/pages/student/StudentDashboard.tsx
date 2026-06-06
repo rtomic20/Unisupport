@@ -1,6 +1,5 @@
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState } from "react";
 import api from "../../api/axios";
-import TimePicker from "../../components/TimePicker";
 
 const TRANSPORT_STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
@@ -48,14 +47,6 @@ function formatTime(t: string | null) {
 
 type Tab = "transport" | "care" | "plans";
 
-const EMPTY_TRANSPORT_FORM = {
-  request_date: "",
-  end_time: "",
-  description: "",
-  pickup_address: "",
-  dropoff_address: "",
-};
-
 const inputCls =
   "border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900";
 
@@ -65,12 +56,6 @@ export default function StudentDashboard() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Transport create form
-  const [showTransportForm, setShowTransportForm] = useState(false);
-  const [transportForm, setTransportForm] = useState(EMPTY_TRANSPORT_FORM);
-  const [transportError, setTransportError] = useState("");
-  const [transportSaving, setTransportSaving] = useState(false);
 
   // Home care create form
   const [showCareForm, setShowCareForm] = useState(false);
@@ -87,7 +72,7 @@ export default function StudentDashboard() {
   function loadAll() {
     setLoading(true);
     Promise.all([
-      api.get("/requests/"),
+      api.get("/requests/", { params: { type: "transport" } }),
       api.get("/home-care/appointments/"),
       api.get("/peer-support/plans/"),
     ]).then(([rRes, aRes, pRes]) => {
@@ -98,36 +83,6 @@ export default function StudentDashboard() {
   }
 
   useEffect(() => { loadAll(); }, []);
-
-  async function handleCreateTransport(e: FormEvent) {
-    e.preventDefault();
-    setTransportError("");
-    if (!transportForm.request_date || !transportForm.end_time || !transportForm.pickup_address || !transportForm.dropoff_address) {
-      setTransportError("Datum, vrijeme, polazište i odredište su obavezni.");
-      return;
-    }
-    setTransportSaving(true);
-    try {
-      await api.post("/requests/", {
-        request_type: "transport",
-        request_date: transportForm.request_date,
-        end_time: transportForm.end_time + ":00",
-        description: transportForm.description,
-        transport_details: {
-          pickup_address: transportForm.pickup_address,
-          dropoff_address: transportForm.dropoff_address,
-        },
-      });
-      setShowTransportForm(false);
-      setTransportForm(EMPTY_TRANSPORT_FORM);
-      loadAll();
-    } catch (err: any) {
-      const data = err.response?.data;
-      setTransportError(typeof data === "object" ? JSON.stringify(data) : String(data));
-    } finally {
-      setTransportSaving(false);
-    }
-  }
 
   async function handleCreateCare() {
     setCareError("");
@@ -217,16 +172,8 @@ export default function StudentDashboard() {
       {/* ── PRIJEVOZ TAB ─────────────────────────────── */}
       {activeTab === "transport" && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-gray-600">Zahtjevi za prijevoz i stare usluge.</p>
-            </div>
-            <button
-              onClick={() => { setTransportForm(EMPTY_TRANSPORT_FORM); setTransportError(""); setShowTransportForm(true); }}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              + Novi zahtjev za prijevoz
-            </button>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">Pregled vaših zahtjeva za prijevoz.</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -234,35 +181,27 @@ export default function StudentDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left text-gray-500 text-xs uppercase">
-                    <th className="px-4 py-3">Tip</th>
                     <th className="px-4 py-3">Datum</th>
-                    <th className="px-4 py-3">Detalji</th>
-                    <th className="px-4 py-3">Vozač / prihvatio</th>
+                    <th className="px-4 py-3">Polazište → Odredište</th>
                     <th className="px-4 py-3">Dolazak do</th>
+                    <th className="px-4 py-3">Vozač</th>
                     <th className="px-4 py-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {requests.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Nema zahtjeva za prijevoz.</td></tr>
+                    <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-400">Nema zahtjeva za prijevoz.</td></tr>
                   ) : (
                     requests.map((r) => (
                       <tr key={r.request_id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3">
-                          <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${r.request_type === "transport" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
-                            {r.request_type === "transport" ? "🚗 Prijevoz" : "🛠️ Usluga"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{r.request_date}</td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-medium">{r.request_date}</td>
                         <td className="px-4 py-3 text-gray-600">
-                          {r.request_type === "transport" && r.transport_details
+                          {r.transport_details
                             ? <span>{r.transport_details.pickup_address} → {r.transport_details.dropoff_address}</span>
-                            : r.service_details
-                              ? <span>{r.service_details.service_category}{r.service_details.location ? ` · ${r.service_details.location}` : ""}</span>
-                              : "—"}
+                            : "—"}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{r.accepted_by_name || "—"}</td>
                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatTime(r.end_time)}</td>
+                        <td className="px-4 py-3 text-gray-600">{r.accepted_by_name || "—"}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${TRANSPORT_STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
                             {TRANSPORT_STATUS_LABELS[r.status] ?? r.status}
@@ -275,60 +214,6 @@ export default function StudentDashboard() {
               </table>
             </div>
           </div>
-
-          {/* Transport create modal */}
-          {showTransportForm && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
-              <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
-                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                  <h2 className="font-semibold text-gray-900">Novi zahtjev za prijevoz</h2>
-                  <button onClick={() => setShowTransportForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-                </div>
-                <form onSubmit={handleCreateTransport} className="p-5 space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Datum *</label>
-                    <input type="date" required value={transportForm.request_date}
-                      onChange={(e) => setTransportForm({ ...transportForm, request_date: e.target.value })}
-                      className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Trebam biti na odredištu u *</label>
-                    <TimePicker value={transportForm.end_time} onChange={(v) => setTransportForm({ ...transportForm, end_time: v })} required />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Polazište *</label>
-                    <input type="text" required placeholder="Ulica i broj, grad"
-                      value={transportForm.pickup_address}
-                      onChange={(e) => setTransportForm({ ...transportForm, pickup_address: e.target.value })}
-                      className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Odredište *</label>
-                    <input type="text" required placeholder="Ulica i broj, grad"
-                      value={transportForm.dropoff_address}
-                      onChange={(e) => setTransportForm({ ...transportForm, dropoff_address: e.target.value })}
-                      className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Napomena (opcionalno)</label>
-                    <textarea rows={2} placeholder="Dodatne napomene..."
-                      value={transportForm.description}
-                      onChange={(e) => setTransportForm({ ...transportForm, description: e.target.value })}
-                      className={inputCls} />
-                  </div>
-                  {transportError && <p className="text-red-600 text-sm">{transportError}</p>}
-                  <div className="flex justify-end gap-2 pt-1">
-                    <button type="button" onClick={() => setShowTransportForm(false)}
-                      className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Odustani</button>
-                    <button type="submit" disabled={transportSaving}
-                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                      {transportSaving ? "Šaljem..." : "Pošalji zahtjev"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

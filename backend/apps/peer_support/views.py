@@ -38,7 +38,7 @@ class SupportPlanViewSet(ModelViewSet):
         if user.role_name == "student":
             serializer.save(student=user)
         else:
-            serializer.save()
+            serializer.save(status="active")
 
     def get_permissions(self):
         if self.action == "destroy":

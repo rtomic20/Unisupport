@@ -18,7 +18,7 @@ interface Plan {
   end_date: string;
   total_hours_planned: number;
   total_hours_done: number;
-  status: "active" | "completed" | "cancelled";
+  status: "pending" | "active" | "completed" | "cancelled";
 }
 
 interface Session {
@@ -74,6 +74,7 @@ export default function PeerSupportAdminPage() {
   // Status change
   const [statusModal, setStatusModal] = useState<Plan | null>(null);
   const [newStatus, setNewStatus] = useState<"active" | "completed" | "cancelled">("active");
+  const [newAssistantId, setNewAssistantId] = useState("");
   const [statusError, setStatusError] = useState("");
 
   function load() {
@@ -154,7 +155,8 @@ export default function PeerSupportAdminPage() {
 
   function openStatusModal(plan: Plan) {
     setStatusModal(plan);
-    setNewStatus(plan.status);
+    setNewStatus(plan.status === "pending" ? "active" : plan.status as "active" | "completed" | "cancelled");
+    setNewAssistantId("");
     setStatusError("");
   }
 
@@ -162,7 +164,11 @@ export default function PeerSupportAdminPage() {
     if (!statusModal) return;
     setStatusError("");
     try {
-      await api.patch(`/peer-support/plans/${statusModal.plan_id}/`, { status: newStatus });
+      const payload: Record<string, any> = { status: newStatus };
+      if (newAssistantId) {
+        payload.assistant = Number(newAssistantId);
+      }
+      await api.patch(`/peer-support/plans/${statusModal.plan_id}/`, payload);
       setStatusModal(null);
       load();
     } catch (err: any) {
@@ -508,6 +514,24 @@ export default function PeerSupportAdminPage() {
                   <option value="active">Aktivno</option>
                   <option value="completed">Završeno</option>
                   <option value="cancelled">Otkazano</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="assign-assistant" className="block text-xs font-medium text-gray-700 mb-1">
+                  Dodijeli asistenta (opcionalno)
+                </label>
+                <select
+                  id="assign-assistant"
+                  value={newAssistantId}
+                  onChange={(e) => setNewAssistantId(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">— Bez promjene —</option>
+                  {assistants.map((a) => (
+                    <option key={a.user_id} value={String(a.user_id)}>
+                      {a.first_name} {a.last_name}
+                    </option>
+                  ))}
                 </select>
               </div>
               {statusError && (
