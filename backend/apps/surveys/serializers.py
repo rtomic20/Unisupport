@@ -30,6 +30,7 @@ class SurveyResponseSerializer(serializers.ModelSerializer):
     def get_student_name(self, obj):
         return f"{obj.student.first_name} {obj.student.last_name}"
 
+    @transaction.atomic
     def create(self, validated_data):
         answers_data = validated_data.pop("answers")
         response = SurveyResponse.objects.create(**validated_data)

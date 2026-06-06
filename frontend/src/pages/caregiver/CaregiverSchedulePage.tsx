@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../../api/axios";
 
 interface Appointment {
-  id: number;
+  appointment_id: number;
   student_name: string;
   date: string;
   start_time: string;
@@ -135,7 +135,7 @@ export default function CaregiverSchedulePage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {appointments.map((appt) => (
-                  <tr key={appt.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={appt.appointment_id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
                       {formatTime(appt.start_time)}
                     </td>
@@ -166,11 +166,11 @@ export default function CaregiverSchedulePage() {
                     <td className="px-4 py-3">
                       {appt.status !== "completed" && appt.status !== "cancelled" && (
                         <button
-                          onClick={() => handleComplete(appt.id)}
-                          disabled={completing === appt.id}
+                          onClick={() => handleComplete(appt.appointment_id)}
+                          disabled={completing === appt.appointment_id}
                           className="px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors whitespace-nowrap"
                         >
-                          {completing === appt.id ? "Sprema..." : "Označi završenim"}
+                          {completing === appt.appointment_id ? "Sprema..." : "Označi završenim"}
                         </button>
                       )}
                     </td>

@@ -1,22 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "../../api/axios";
 
 interface Session {
-  id: number;
-  date: string;
+  session_id: number;
+  session_date: string;
   hours: number;
   notes: string;
   logged_by_name: string;
 }
 
 interface Plan {
-  id: number;
+  plan_id: number;
   title: string;
   assistant_name: string;
   start_date: string;
   end_date: string;
-  planned_hours: number;
-  done_hours: number;
+  total_hours_planned: number;
+  total_hours_done: number;
   status: "active" | "completed" | "cancelled";
 }
 
@@ -89,9 +89,9 @@ function SessionsPanel({ planId }: { planId: number }) {
         </thead>
         <tbody className="divide-y divide-gray-50">
           {sessions.map((s) => (
-            <tr key={s.id} className="hover:bg-gray-50">
+            <tr key={s.session_id} className="hover:bg-gray-50">
               <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">
-                {s.date}
+                {s.session_date}
               </td>
               <td className="px-4 py-2.5 text-right font-medium text-blue-700 whitespace-nowrap">
                 {s.hours}h
@@ -110,12 +110,26 @@ function SessionsPanel({ planId }: { planId: number }) {
   );
 }
 
+const EMPTY_PLAN_FORM = {
+  title: "",
+  description: "",
+  start_date: "",
+  end_date: "",
+  total_hours_planned: "",
+};
+
 export default function MySupportPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
+  const [showForm, setShowForm] = useState(false);
+  const [planForm, setPlanForm] = useState(EMPTY_PLAN_FORM);
+  const [planFormError, setPlanFormError] = useState("");
+  const [planFormSaving, setPlanFormSaving] = useState(false);
+
+  const loadPlans = useCallback(() => {
+    setLoading(true);
     api
       .get("/peer-support/plans/")
       .then(({ data }) => {
@@ -123,6 +137,35 @@ export default function MySupportPlansPage() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
+
+  async function handleCreatePlan() {
+    setPlanFormError("");
+    if (!planForm.title || !planForm.start_date || !planForm.total_hours_planned) {
+      setPlanFormError("Naslov, datum početka i broj sati su obavezni.");
+      return;
+    }
+    setPlanFormSaving(true);
+    try {
+      await api.post("/peer-support/plans/", {
+        title: planForm.title,
+        description: planForm.description,
+        start_date: planForm.start_date,
+        end_date: planForm.end_date || null,
+        total_hours_planned: Number(planForm.total_hours_planned),
+      });
+      setShowForm(false);
+      setPlanForm(EMPTY_PLAN_FORM);
+      loadPlans();
+    } catch (err: any) {
+      setPlanFormError(JSON.stringify(err.response?.data ?? "Greška pri kreiranju."));
+    } finally {
+      setPlanFormSaving(false);
+    }
+  }
 
   function toggleRow(id: number) {
     setExpandedIds((prev) => {
@@ -144,11 +187,22 @@ export default function MySupportPlansPage() {
     );
   }
 
+  const inputCls =
+    "border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900";
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
-      <h1 className="text-xl font-bold text-gray-800 mb-6">
-        Moji planovi podrške
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold text-gray-800">
+          Moji planovi podrške
+        </h1>
+        <button
+          onClick={() => { setPlanForm(EMPTY_PLAN_FORM); setPlanFormError(""); setShowForm(true); }}
+          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          + Zatraži plan podrške
+        </button>
+      </div>
 
       {plans.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
@@ -173,12 +227,12 @@ export default function MySupportPlansPage() {
 
           <div className="divide-y divide-gray-50">
             {plans.map((plan) => {
-              const isOpen = expandedIds.has(plan.id);
+              const isOpen = expandedIds.has(plan.plan_id);
               return (
-                <div key={plan.id}>
+                <div key={plan.plan_id}>
                   {/* Row */}
                   <button
-                    onClick={() => toggleRow(plan.id)}
+                    onClick={() => toggleRow(plan.plan_id)}
                     className="w-full text-left px-4 py-4 hover:bg-gray-50 transition-colors"
                   >
                     {/* Mobile layout */}
@@ -197,13 +251,13 @@ export default function MySupportPlansPage() {
                         <span>
                           Planiran:{" "}
                           <span className="font-medium text-gray-700">
-                            {plan.planned_hours}h
+                            {plan.total_hours_planned}h
                           </span>
                         </span>
                         <span>
                           Odrađeno:{" "}
                           <span className="font-medium text-blue-700">
-                            {plan.done_hours}h
+                            {plan.total_hours_done}h
                           </span>
                         </span>
                       </div>
@@ -227,10 +281,10 @@ export default function MySupportPlansPage() {
                         {plan.end_date}
                       </span>
                       <span className="text-right font-medium text-gray-700 whitespace-nowrap">
-                        {plan.planned_hours}h
+                        {plan.total_hours_planned}h
                       </span>
                       <span className="text-right font-medium text-blue-700 whitespace-nowrap">
-                        {plan.done_hours}h
+                        {plan.total_hours_done}h
                       </span>
                       <StatusBadge status={plan.status} />
                       <span className="text-xs text-blue-500 text-right whitespace-nowrap">
@@ -245,12 +299,125 @@ export default function MySupportPlansPage() {
                       <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                         Sesije
                       </div>
-                      <SessionsPanel planId={plan.id} />
+                      <SessionsPanel planId={plan.plan_id} />
                     </div>
                   )}
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Create plan modal */}
+      {showForm && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-plan-title"
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h2 id="create-plan-title" className="font-semibold text-gray-900">
+                Zatraži plan podrške
+              </h2>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-gray-400 hover:text-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
+                aria-label="Zatvori"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label htmlFor="plan-title" className="block text-xs font-medium text-gray-700 mb-1">
+                  Naslov *
+                </label>
+                <input
+                  id="plan-title"
+                  type="text"
+                  placeholder="npr. Podrška pri kretanju"
+                  value={planForm.title}
+                  onChange={(e) => setPlanForm({ ...planForm, title: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label htmlFor="plan-desc" className="block text-xs font-medium text-gray-700 mb-1">
+                  Opis
+                </label>
+                <textarea
+                  id="plan-desc"
+                  rows={3}
+                  placeholder="Opišite vrstu podrške koja vam je potrebna..."
+                  value={planForm.description}
+                  onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="plan-start" className="block text-xs font-medium text-gray-700 mb-1">
+                    Datum početka *
+                  </label>
+                  <input
+                    id="plan-start"
+                    type="date"
+                    value={planForm.start_date}
+                    onChange={(e) => setPlanForm({ ...planForm, start_date: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="plan-end" className="block text-xs font-medium text-gray-700 mb-1">
+                    Datum završetka
+                  </label>
+                  <input
+                    id="plan-end"
+                    type="date"
+                    value={planForm.end_date}
+                    onChange={(e) => setPlanForm({ ...planForm, end_date: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="plan-hours" className="block text-xs font-medium text-gray-700 mb-1">
+                  Planirani broj sati *
+                </label>
+                <input
+                  id="plan-hours"
+                  type="number"
+                  min={1}
+                  placeholder="npr. 20"
+                  value={planForm.total_hours_planned}
+                  onChange={(e) => setPlanForm({ ...planForm, total_hours_planned: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+              {planFormError && (
+                <p role="alert" className="text-red-600 text-sm">
+                  {planFormError}
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                >
+                  Odustani
+                </button>
+                <button
+                  onClick={handleCreatePlan}
+                  disabled={planFormSaving}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {planFormSaving ? "Slanje..." : "Pošalji zahtjev"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

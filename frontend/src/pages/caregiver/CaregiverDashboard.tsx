@@ -4,7 +4,7 @@ import api from "../../api/axios";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface Appointment {
-  id: number;
+  appointment_id: number;
   student_name: string;
   date: string;
   start_time: string;
@@ -136,7 +136,7 @@ export default function CaregiverDashboard() {
                 </tr>
               ) : (
                 todayAppointments.map((appt) => (
-                  <tr key={appt.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={appt.appointment_id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-medium">
                       {formatTime(appt.start_time)} – {formatTime(appt.end_time)}
                     </td>

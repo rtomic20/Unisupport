@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import api from "../../api/axios";
 
 interface Session {
-  id: number;
+  session_id: number;
   plan: number;
   session_date: string;
   hours: number;
@@ -10,11 +10,11 @@ interface Session {
 }
 
 interface SupportPlan {
-  id: number;
+  plan_id: number;
   title: string;
   student_name: string;
-  planned_hours: number;
-  done_hours: number;
+  total_hours_planned: number;
+  total_hours_done: number;
   status: "active" | "completed" | "paused" | "cancelled";
 }
 
@@ -188,26 +188,26 @@ export default function MyPlansPage() {
       ) : (
         <div className="space-y-4">
           {plans.map((plan) => {
-            const isExpanded = expandedPlanId === plan.id;
-            const sessions = sessionsMap[plan.id] ?? [];
-            const sessionsLoading = sessionsLoadingMap[plan.id] ?? false;
-            const form = formsMap[plan.id] ?? emptyForm();
-            const saving = savingMap[plan.id] ?? false;
-            const formError = formErrorsMap[plan.id] ?? "";
+            const isExpanded = expandedPlanId === plan.plan_id;
+            const sessions = sessionsMap[plan.plan_id] ?? [];
+            const sessionsLoading = sessionsLoadingMap[plan.plan_id] ?? false;
+            const form = formsMap[plan.plan_id] ?? emptyForm();
+            const saving = savingMap[plan.plan_id] ?? false;
+            const formError = formErrorsMap[plan.plan_id] ?? "";
             const pct =
-              plan.planned_hours > 0
-                ? Math.min(100, Math.round((plan.done_hours / plan.planned_hours) * 100))
+              plan.total_hours_planned > 0
+                ? Math.min(100, Math.round((plan.total_hours_done / plan.total_hours_planned) * 100))
                 : 0;
 
             return (
               <div
-                key={plan.id}
+                key={plan.plan_id}
                 className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
               >
                 {/* Plan header row — click to expand */}
                 <button
                   className="w-full text-left p-5 hover:bg-gray-50 transition-colors"
-                  onClick={() => togglePlan(plan.id)}
+                  onClick={() => togglePlan(plan.plan_id)}
                 >
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
@@ -228,7 +228,7 @@ export default function MyPlansPage() {
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-700">
-                          {plan.done_hours}h / {plan.planned_hours}h
+                          {plan.total_hours_done}h / {plan.total_hours_planned}h
                         </p>
                         <div className="flex items-center gap-1.5 mt-1">
                           <div className="w-24 bg-gray-100 rounded-full h-1.5">
@@ -282,7 +282,7 @@ export default function MyPlansPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                               {sessions.map((s) => (
-                                <tr key={s.id} className="hover:bg-gray-50">
+                                <tr key={s.session_id} className="hover:bg-gray-50">
                                   <td className="px-3 py-2 text-gray-700 whitespace-nowrap">
                                     {s.session_date}
                                   </td>
@@ -315,7 +315,7 @@ export default function MyPlansPage() {
                               type="date"
                               value={form.session_date}
                               onChange={(e) =>
-                                updateForm(plan.id, "session_date", e.target.value)
+                                updateForm(plan.plan_id, "session_date", e.target.value)
                               }
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
@@ -330,7 +330,7 @@ export default function MyPlansPage() {
                               step="0.5"
                               placeholder="npr. 2"
                               value={form.hours}
-                              onChange={(e) => updateForm(plan.id, "hours", e.target.value)}
+                              onChange={(e) => updateForm(plan.plan_id, "hours", e.target.value)}
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -342,7 +342,7 @@ export default function MyPlansPage() {
                               type="text"
                               placeholder="Opcionalno"
                               value={form.notes}
-                              onChange={(e) => updateForm(plan.id, "notes", e.target.value)}
+                              onChange={(e) => updateForm(plan.plan_id, "notes", e.target.value)}
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -356,7 +356,7 @@ export default function MyPlansPage() {
 
                         <div className="mt-3 flex justify-end">
                           <button
-                            onClick={() => handleSubmitSession(plan.id)}
+                            onClick={() => handleSubmitSession(plan.plan_id)}
                             disabled={saving}
                             className="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
                           >

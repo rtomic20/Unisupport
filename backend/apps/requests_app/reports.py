@@ -89,7 +89,7 @@ class UnifiedReportView(APIView):
         date_to = params.get("to")
         student_id = params.get("student_id")
 
-        rides_qs = Request.objects.filter(request_type="transport", status="completed")
+        rides_qs = Request.objects.filter(request_type="transport")
         care_qs = HomeAppointment.objects.filter(status="completed")
         sessions_qs = SupportSession.objects.all()
 

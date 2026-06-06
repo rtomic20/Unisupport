@@ -9,9 +9,9 @@ interface User {
 }
 
 interface Appointment {
-  id: number;
-  student: User;
-  caregiver: User | null;
+  appointment_id: number;
+  student_name: string;
+  caregiver_name: string | null;
   appointment_date: string;
   start_time: string;
   end_time: string;
@@ -124,7 +124,7 @@ export default function HomeCareAdminPage() {
     if (!assignModal) return;
     setAssignError("");
     try {
-      await api.post(`/home-care/appointments/${assignModal.id}/assign_caregiver/`, {
+      await api.post(`/home-care/appointments/${assignModal.appointment_id}/assign_caregiver/`, {
         caregiver_id: Number(assignCaregiverId),
       });
       setAssignModal(null);
@@ -137,7 +137,7 @@ export default function HomeCareAdminPage() {
   async function handleComplete(appt: Appointment) {
     if (!confirm(`Označi termin od ${appt.appointment_date} kao završen?`)) return;
     try {
-      await api.post(`/home-care/appointments/${appt.id}/complete/`);
+      await api.post(`/home-care/appointments/${appt.appointment_id}/complete/`);
       load();
     } catch {
       alert("Greška pri označavanju kao završeno.");
@@ -153,7 +153,8 @@ export default function HomeCareAdminPage() {
         <h1 className="text-xl font-bold text-gray-900">Njega u domu</h1>
         <button
           onClick={openCreate}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={loading || students.length === 0}
+          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Kreiraj novi termin"
         >
           + Novi termin
@@ -186,18 +187,16 @@ export default function HomeCareAdminPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {appointments.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50">
+                <tr key={a.appointment_id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-900">{a.appointment_date}</td>
                   <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                     {a.start_time.slice(0, 5)} – {a.end_time.slice(0, 5)}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
-                    {a.student.first_name} {a.student.last_name}
+                    {a.student_name}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
-                    {a.caregiver
-                      ? `${a.caregiver.first_name} ${a.caregiver.last_name}`
-                      : <span className="text-gray-400">—</span>}
+                    {a.caregiver_name ?? <span className="text-gray-400">—</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{a.location || <span className="text-gray-400">—</span>}</td>
                   <td className="px-4 py-3">
@@ -211,7 +210,7 @@ export default function HomeCareAdminPage() {
                         <button
                           onClick={() => openAssign(a)}
                           className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          aria-label={`Dodijeli njegovatelja za termin ${a.id}`}
+                          aria-label={`Dodijeli njegovatelja za termin ${a.appointment_id}`}
                         >
                           Dodijeli
                         </button>
@@ -220,7 +219,7 @@ export default function HomeCareAdminPage() {
                         <button
                           onClick={() => handleComplete(a)}
                           className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-                          aria-label={`Označi termin ${a.id} kao završen`}
+                          aria-label={`Označi termin ${a.appointment_id} kao završen`}
                         >
                           Završi
                         </button>

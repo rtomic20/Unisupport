@@ -9,11 +9,11 @@ interface User {
 }
 
 interface Plan {
-  id: number;
+  plan_id: number;
   title: string;
   description: string;
-  student: User;
-  assistant: User;
+  student_name: string;
+  assistant_name: string;
   start_date: string;
   end_date: string;
   total_hours_planned: number;
@@ -96,16 +96,16 @@ export default function PeerSupportAdminPage() {
   }, []);
 
   async function toggleExpand(plan: Plan) {
-    if (expandedPlanId === plan.id) {
+    if (expandedPlanId === plan.plan_id) {
       setExpandedPlanId(null);
       setSessions([]);
       return;
     }
-    setExpandedPlanId(plan.id);
+    setExpandedPlanId(plan.plan_id);
     setSessions([]);
     setSessionsLoading(true);
     try {
-      const { data } = await api.get(`/peer-support/sessions/?plan_id=${plan.id}`);
+      const { data } = await api.get(`/peer-support/sessions/?plan_id=${plan.plan_id}`);
       setSessions(data.results ?? data);
     } catch {
       setSessions([]);
@@ -160,7 +160,7 @@ export default function PeerSupportAdminPage() {
     if (!statusModal) return;
     setStatusError("");
     try {
-      await api.patch(`/peer-support/plans/${statusModal.id}/`, { status: newStatus });
+      await api.patch(`/peer-support/plans/${statusModal.plan_id}/`, { status: newStatus });
       setStatusModal(null);
       load();
     } catch (err: any) {
@@ -211,17 +211,17 @@ export default function PeerSupportAdminPage() {
               {plans.map((p) => (
                 <>
                   <tr
-                    key={p.id}
+                    key={p.plan_id}
                     className="border-t border-gray-50 hover:bg-gray-50 cursor-pointer"
                     onClick={() => toggleExpand(p)}
-                    aria-expanded={expandedPlanId === p.id}
+                    aria-expanded={expandedPlanId === p.plan_id}
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">{p.title}</td>
                     <td className="px-4 py-3 text-gray-700">
-                      {p.student.first_name} {p.student.last_name}
+                      {p.student_name}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
-                      {p.assistant.first_name} {p.assistant.last_name}
+                      {p.assistant_name ?? <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{p.start_date}</td>
                     <td className="px-4 py-3 text-gray-600">{p.end_date}</td>
@@ -259,16 +259,16 @@ export default function PeerSupportAdminPage() {
                         <button
                           onClick={() => toggleExpand(p)}
                           className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          aria-label={`${expandedPlanId === p.id ? "Sakrij" : "Prikaži"} sesije za plan ${p.title}`}
+                          aria-label={`${expandedPlanId === p.plan_id ? "Sakrij" : "Prikaži"} sesije za plan ${p.title}`}
                         >
-                          {expandedPlanId === p.id ? "Sakrij" : "Sesije"}
+                          {expandedPlanId === p.plan_id ? "Sakrij" : "Sesije"}
                         </button>
                       </div>
                     </td>
                   </tr>
 
-                  {expandedPlanId === p.id && (
-                    <tr key={`${p.id}-sessions`} className="bg-blue-50/30">
+                  {expandedPlanId === p.plan_id && (
+                    <tr key={`${p.plan_id}-sessions`} className="bg-blue-50/30">
                       <td colSpan={8} className="px-6 py-4">
                         <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
                           Sesije — {p.title}

@@ -1,3 +1,6 @@
+from django.db import IntegrityError
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -46,7 +49,13 @@ class SurveyResponseViewSet(ModelViewSet):
         return SurveyResponse.objects.filter(student=user).select_related("survey").prefetch_related("answers")
 
     def perform_create(self, serializer):
-        serializer.save(student=self.request.user)
+        survey = serializer.validated_data.get("survey")
+        if SurveyResponse.objects.filter(survey=survey, student=self.request.user).exists():
+            raise ValidationError({"detail": "Već ste ispunili ovu anketu."})
+        try:
+            serializer.save(student=self.request.user)
+        except IntegrityError:
+            raise ValidationError({"detail": "Već ste ispunili ovu anketu."})
 
     def get_permissions(self):
         if self.action == "destroy":
