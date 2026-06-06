@@ -242,10 +242,10 @@ export default function SurveysPage() {
           <div className="space-y-3">
             {availableSurveys.map((survey) => (
               <SurveyCard
-                key={survey.id}
+                key={survey.survey_id}
                 survey={survey}
                 onCompleted={() =>
-                  setCompletedIds((prev) => new Set([...prev, survey.id]))
+                  setCompletedIds((prev) => new Set([...prev, survey.survey_id]))
                 }
               />
             ))}
@@ -261,10 +261,10 @@ export default function SurveysPage() {
           </h2>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-50">
             {completedSurveys.map((survey) => {
-              const dateStr = getResponseDate(survey.id);
+              const dateStr = getResponseDate(survey.survey_id);
               return (
                 <div
-                  key={survey.id}
+                  key={survey.survey_id}
                   className="px-5 py-4 flex items-center justify-between gap-3"
                 >
                   <div>
@@ -276,7 +276,7 @@ export default function SurveysPage() {
                         Ispunjeno: {formatDate(dateStr)}
                       </p>
                     )}
-                    {!dateStr && completedIds.has(survey.id) && (
+                    {!dateStr && completedIds.has(survey.survey_id) && (
                       <p className="text-xs text-gray-400 mt-0.5">
                         Ispunjeno upravo
                       </p>
