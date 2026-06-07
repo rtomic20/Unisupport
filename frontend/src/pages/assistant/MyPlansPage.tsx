@@ -148,12 +148,10 @@ export default function MyPlansPage() {
             : (res.data as { results: SupportPlan[] }).results ?? [];
           setPlans(data);
         });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      setFormErrorsMap((prev) => ({
-        ...prev,
-        [planId]: axiosErr.response?.data?.detail ?? "Greška pri bilježenju sesije.",
-      }));
+    } catch (err: any) {
+      const errData = err.response?.data;
+      const msg = errData?.hours || errData?.non_field_errors?.[0] || errData?.detail || "Greška pri bilježenju sesije.";
+      setFormErrorsMap((prev) => ({ ...prev, [planId]: typeof msg === "string" ? msg : JSON.stringify(msg) }));
     } finally {
       setSavingMap((prev) => ({ ...prev, [planId]: false }));
     }

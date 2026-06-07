@@ -138,13 +138,15 @@ class TransportDetailView(APIView):
 
     def get(self, request):
         params = request.query_params
-        qs = Request.objects.filter(request_type="transport", accepted_by__isnull=False)
+        qs = Request.objects.filter(request_type="transport", status="completed")
         if params.get("from"):
             qs = qs.filter(request_date__gte=params["from"])
         if params.get("to"):
             qs = qs.filter(request_date__lte=params["to"])
         if params.get("student_id"):
             qs = qs.filter(student_id=params["student_id"])
+        if params.get("worker_id"):
+            qs = qs.filter(accepted_by_id=params["worker_id"])
         data = (
             qs.values(
                 "student__user_id", "student__first_name", "student__last_name",
@@ -169,13 +171,15 @@ class CareDetailView(APIView):
 
     def get(self, request):
         params = request.query_params
-        qs = HomeAppointment.objects.filter(caregiver__isnull=False)
+        qs = HomeAppointment.objects.filter(status="completed")
         if params.get("from"):
             qs = qs.filter(appointment_date__gte=params["from"])
         if params.get("to"):
             qs = qs.filter(appointment_date__lte=params["to"])
         if params.get("student_id"):
             qs = qs.filter(student_id=params["student_id"])
+        if params.get("worker_id"):
+            qs = qs.filter(caregiver_id=params["worker_id"])
         data = (
             qs.values(
                 "student__user_id", "student__first_name", "student__last_name",
@@ -200,13 +204,15 @@ class SupportDetailView(APIView):
 
     def get(self, request):
         params = request.query_params
-        qs = SupportSession.objects.filter(plan__assistant__isnull=False)
+        qs = SupportSession.objects.filter(plan__status="completed")
         if params.get("from"):
             qs = qs.filter(session_date__gte=params["from"])
         if params.get("to"):
             qs = qs.filter(session_date__lte=params["to"])
         if params.get("student_id"):
             qs = qs.filter(plan__student_id=params["student_id"])
+        if params.get("worker_id"):
+            qs = qs.filter(plan__assistant_id=params["worker_id"])
         data = (
             qs.values(
                 "plan__student__user_id", "plan__student__first_name", "plan__student__last_name",

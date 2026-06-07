@@ -2,6 +2,12 @@ import { useEffect, useState, FormEvent } from "react";
 import api from "../../api/axios";
 import TimePicker from "../../components/TimePicker";
 
+function formatDateHR(dateStr: string): string {
+  if (!dateStr) return "—";
+  const [year, month, day] = dateStr.split("-");
+  return `${day}.${month}.${year}.`;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
   accepted: "bg-blue-100 text-blue-700 border-blue-200",
@@ -128,7 +134,7 @@ export default function TransportPage() {
                 ) : (
                   requests.map((r) => (
                     <tr key={r.request_id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">{r.request_date}</td>
+                      <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">{formatDateHR(r.request_date)}</td>
                       <td className="px-4 py-3 text-gray-600">{r.transport_details?.pickup_address || "—"}</td>
                       <td className="px-4 py-3 text-gray-600">{r.transport_details?.dropoff_address || "—"}</td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{r.end_time?.slice(0, 5) || "—"}</td>

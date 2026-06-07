@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 
+function formatDateHR(dateStr: string): string {
+  if (!dateStr) return "—";
+  const [year, month, day] = dateStr.split("-");
+  return `${day}.${month}.${year}.`;
+}
+
 type ServiceType = "transport" | "care" | "support";
 
 interface UnifiedItem {
@@ -76,7 +82,12 @@ export default function AdminDashboard() {
         status: p.status,
       }));
 
-      const all = [...transport, ...care, ...support].sort((a, b) => b.date.localeCompare(a.date));
+      const STATUS_ORDER: Record<string, number> = { pending: 0, assigned: 1, accepted: 1, active: 1, completed: 2, cancelled: 2, rejected: 2 };
+      const all = [...transport, ...care, ...support].sort((a, b) => {
+        const sc = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+        if (sc !== 0) return sc;
+        return a.date.localeCompare(b.date);
+      });
 
       setStats({
         transport: transport.length,
@@ -139,7 +150,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3 text-gray-700">{item.student_name}</td>
                       <td className="px-4 py-3 text-gray-600">{item.worker_name}</td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{item.date}</td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDateHR(item.date)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[item.status] ?? "bg-gray-100 text-gray-600"}`}>
                           {STATUS_LABELS[item.status] ?? item.status}

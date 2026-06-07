@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import AssignDriverModal from "../../components/AssignDriverModal";
 
+function formatDateHR(dateStr: string): string {
+  if (!dateStr) return "—";
+  const [year, month, day] = dateStr.split("-");
+  return `${day}.${month}.${year}.`;
+}
+
 type ServiceType = "transport" | "care" | "support" | "";
 type SortField = "date" | "student" | "type" | "status";
 type SortDir = "asc" | "desc";
@@ -122,11 +128,17 @@ export default function RequestsPage() {
     return <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>;
   }
 
+  const STATUS_ORDER: Record<string, number> = { pending: 0, assigned: 1, accepted: 1, active: 1, completed: 2, cancelled: 2, rejected: 2 };
+
   const filtered = allItems
     .filter((i) => !filterType || i.type === filterType)
     .filter((i) => !filterStatus || i.status === filterStatus)
     .filter((i) => !filterDate || i.date === filterDate)
     .sort((a, b) => {
+      // Primary: pending first
+      const sc = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+      if (sc !== 0) return sc;
+      // Secondary: user's chosen sort
       let cmp = 0;
       if (sortField === "date") cmp = a.date.localeCompare(b.date);
       else if (sortField === "student") cmp = a.student_name.localeCompare(b.student_name);
@@ -210,7 +222,7 @@ export default function RequestsPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-700">{item.student_name}</td>
                     <td className="px-4 py-3 text-gray-600">{item.worker_name}</td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{item.date}</td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDateHR(item.date)}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[item.status] ?? "bg-gray-100 text-gray-600"}`}>
                         {STATUS_LABELS[item.status] ?? item.status}

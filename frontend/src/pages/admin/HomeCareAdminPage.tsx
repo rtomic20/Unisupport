@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import api from "../../api/axios";
 
+function formatDateHR(dateStr: string): string {
+  if (!dateStr) return "—";
+  const [year, month, day] = dateStr.split("-");
+  return `${day}.${month}.${year}.`;
+}
+
 interface User {
   user_id: number;
   first_name: string;
@@ -36,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const EMPTY_FORM = {
   student_id: "",
+  caregiver_id: "",
   appointment_date: "",
   start_time: "",
   end_time: "",
@@ -84,6 +91,7 @@ export default function HomeCareAdminPage() {
     setForm({
       ...EMPTY_FORM,
       student_id: students[0]?.user_id?.toString() ?? "",
+      caregiver_id: caregivers[0]?.user_id?.toString() ?? "",
     });
     setFormError("");
     setShowForm(true);
@@ -99,6 +107,7 @@ export default function HomeCareAdminPage() {
     try {
       await api.post("/home-care/appointments/", {
         student: Number(form.student_id),
+        caregiver: form.caregiver_id ? Number(form.caregiver_id) : undefined,
         appointment_date: form.appointment_date,
         start_time: form.start_time,
         end_time: form.end_time,
@@ -188,7 +197,7 @@ export default function HomeCareAdminPage() {
             <tbody className="divide-y divide-gray-50">
               {appointments.map((a) => (
                 <tr key={a.appointment_id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-900">{a.appointment_date}</td>
+                  <td className="px-4 py-3 text-gray-900">{formatDateHR(a.appointment_date)}</td>
                   <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                     {a.start_time.slice(0, 5)} – {a.end_time.slice(0, 5)}
                   </td>
@@ -275,6 +284,25 @@ export default function HomeCareAdminPage() {
                   {students.map((s) => (
                     <option key={s.user_id} value={s.user_id}>
                       {s.first_name} {s.last_name} ({s.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="f-caregiver" className="block text-xs font-medium text-gray-700 mb-1">
+                  Njegovatelj/ica
+                </label>
+                <select
+                  id="f-caregiver"
+                  value={form.caregiver_id}
+                  onChange={(e) => setForm({ ...form, caregiver_id: e.target.value })}
+                  className={inputCls}
+                >
+                  <option value="">— Bez dodjele —</option>
+                  {caregivers.map((c) => (
+                    <option key={c.user_id} value={c.user_id}>
+                      {c.first_name} {c.last_name} ({c.email})
                     </option>
                   ))}
                 </select>

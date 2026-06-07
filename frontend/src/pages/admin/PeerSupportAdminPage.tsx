@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import api from "../../api/axios";
 
+function formatDateHR(dateStr: string): string {
+  if (!dateStr) return "—";
+  const [year, month, day] = dateStr.split("-");
+  return `${day}.${month}.${year}.`;
+}
+
 interface User {
   user_id: number;
   first_name: string;
@@ -231,8 +237,8 @@ export default function PeerSupportAdminPage() {
                     <td className="px-4 py-3 text-gray-700">
                       {p.assistant_name ?? <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{p.start_date}</td>
-                    <td className="px-4 py-3 text-gray-600">{p.end_date}</td>
+                    <td className="px-4 py-3 text-gray-600">{formatDateHR(p.start_date)}</td>
+                    <td className="px-4 py-3 text-gray-600">{formatDateHR(p.end_date)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="text-gray-900 font-medium whitespace-nowrap">
