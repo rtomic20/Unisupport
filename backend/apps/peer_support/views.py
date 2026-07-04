@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from apps.accounts.models import CustomUser
 from apps.accounts.permissions import IsAdmin
 from .models import SupportPlan, SupportSession
 from .serializers import SupportPlanSerializer, SupportSessionSerializer
@@ -41,9 +42,52 @@ class SupportPlanViewSet(ModelViewSet):
             serializer.save(status="active")
 
     def get_permissions(self):
-        if self.action == "destroy":
+        if self.action in ("destroy", "confirm", "reject", "complete", "assign_assistant"):
             return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsAdmin])
+    def confirm(self, request, pk=None):
+        plan = self.get_object()
+        if plan.status != "pending":
+            return Response({"detail": "Može se potvrditi samo plan u statusu 'na čekanju'."}, status=status.HTTP_400_BAD_REQUEST)
+        plan.status = "active"
+        plan.save()
+        return Response(SupportPlanSerializer(plan).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsAdmin])
+    def reject(self, request, pk=None):
+        plan = self.get_object()
+        if plan.status != "pending":
+            return Response({"detail": "Može se odbiti samo plan u statusu 'na čekanju'."}, status=status.HTTP_400_BAD_REQUEST)
+        plan.status = "cancelled"
+        plan.save()
+        return Response(SupportPlanSerializer(plan).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsAdmin])
+    def complete(self, request, pk=None):
+        plan = self.get_object()
+        if plan.status != "active":
+            return Response({"detail": "Može se završiti samo aktivan plan."}, status=status.HTTP_400_BAD_REQUEST)
+        plan.status = "completed"
+        plan.save()
+        return Response(SupportPlanSerializer(plan).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsAdmin])
+    def assign_assistant(self, request, pk=None):
+        plan = self.get_object()
+        assistant_id = request.data.get("assistant_id")
+        if not assistant_id:
+            return Response({"detail": "assistant_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            assistant = CustomUser.objects.get(user_id=assistant_id, role__role_name="assistant")
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "Asistent nije pronađen."}, status=status.HTTP_404_NOT_FOUND)
+        plan.assistant = assistant
+        if plan.status == "pending":
+            plan.status = "active"
+        plan.save()
+        return Response(SupportPlanSerializer(plan).data)
 
 
 class SupportSessionViewSet(ModelViewSet):

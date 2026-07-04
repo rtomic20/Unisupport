@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import PasswordInput from "../../components/PasswordInput";
+import RolesPage from "./RolesPage";
+
+type UsersTab = "users" | "roles";
 
 interface User {
   user_id: number;
@@ -19,6 +22,7 @@ interface Role {
 }
 
 export default function UsersPage() {
+  const [activeTab, setActiveTab] = useState<UsersTab>("users");
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -70,10 +74,37 @@ export default function UsersPage() {
     load();
   }
 
+  const tabs: { key: UsersTab; label: string }[] = [
+    { key: "users", label: "Korisnici" },
+    { key: "roles", label: "Uloge" },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
+      <h1 className="text-xl font-bold text-gray-800 mb-4">Korisnici</h1>
+
+      {/* Sub-tab navigation */}
+      <div className="flex gap-1 mb-5 border-b border-gray-200">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              activeTab === t.key
+                ? "bg-white border border-b-white border-gray-200 text-blue-700 -mb-px"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "roles" && <RolesPage />}
+
+      {activeTab === "users" && (<>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-800">Korisnici</h1>
+        <div />
         <button onClick={openCreate} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
           + Novi korisnik
         </button>
@@ -114,6 +145,8 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      </>)}
 
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">

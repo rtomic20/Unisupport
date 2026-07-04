@@ -1,6 +1,7 @@
-import csv
+import io
 from django.db.models import Count, Sum
 from django.http import HttpResponse
+import openpyxl
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -267,32 +268,47 @@ class UnifiedReportView(APIView):
         })
 
 
+def _xlsx_response(filename, headers, rows):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(headers)
+    for row in rows:
+        ws.append(row)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = HttpResponse(
+        buf.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
 class ExportRidesCSVView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
         qs = _apply_filters(
-            Request.objects.filter(request_type="transport").select_related(
+            Request.objects.filter(request_type="transport", status="completed").select_related(
                 "student", "accepted_by", "transport_details"
             ),
             request.query_params,
         )
-        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-        response["Content-Disposition"] = 'attachment; filename="voznje.csv"'
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["ID", "Datum", "Student", "Vozač", "Polazište", "Odredište", "Status"])
+        headers = ["ID", "Datum", "Student", "Vozač", "Polazište", "Odredište", "Status"]
+        rows = []
         for r in qs:
             td = getattr(r, "transport_details", None)
-            writer.writerow([
+            rows.append([
                 r.request_id,
-                r.request_date,
+                str(r.request_date),
                 f"{r.student.first_name} {r.student.last_name}",
                 f"{r.accepted_by.first_name} {r.accepted_by.last_name}" if r.accepted_by else "",
                 td.pickup_address if td else "",
                 td.dropoff_address if td else "",
                 r.status,
             ])
-        return response
+        return _xlsx_response("voznje.xlsx", headers, rows)
 
 
 class ExportCareCSVView(APIView):
@@ -300,26 +316,24 @@ class ExportCareCSVView(APIView):
 
     def get(self, request):
         params = request.query_params
-        qs = HomeAppointment.objects.select_related("student", "caregiver")
+        qs = HomeAppointment.objects.filter(status="completed").select_related("student", "caregiver")
         if params.get("from"):
             qs = qs.filter(appointment_date__gte=params["from"])
         if params.get("to"):
             qs = qs.filter(appointment_date__lte=params["to"])
         if params.get("student_id"):
             qs = qs.filter(student_id=params["student_id"])
-        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-        response["Content-Disposition"] = 'attachment; filename="njega.csv"'
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["ID", "Datum", "Početak", "Kraj", "Student", "Njegovatelj", "Lokacija", "Status"])
+        headers = ["ID", "Datum", "Početak", "Kraj", "Student", "Njegovatelj", "Lokacija", "Status"]
+        rows = []
         for a in qs:
-            writer.writerow([
-                a.appointment_id, a.appointment_date,
+            rows.append([
+                a.appointment_id, str(a.appointment_date),
                 str(a.start_time)[:5], str(a.end_time)[:5],
                 f"{a.student.first_name} {a.student.last_name}",
                 f"{a.caregiver.first_name} {a.caregiver.last_name}" if a.caregiver else "",
                 a.location, a.status,
             ])
-        return response
+        return _xlsx_response("njega.xlsx", headers, rows)
 
 
 class ExportSupportCSVView(APIView):
@@ -327,23 +341,23 @@ class ExportSupportCSVView(APIView):
 
     def get(self, request):
         params = request.query_params
-        qs = SupportSession.objects.select_related("plan__student", "plan__assistant")
+        qs = SupportSession.objects.filter(plan__status="completed").select_related(
+            "plan__student", "plan__assistant"
+        )
         if params.get("from"):
             qs = qs.filter(session_date__gte=params["from"])
         if params.get("to"):
             qs = qs.filter(session_date__lte=params["to"])
         if params.get("student_id"):
             qs = qs.filter(plan__student_id=params["student_id"])
-        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-        response["Content-Disposition"] = 'attachment; filename="podrska.csv"'
-        writer = csv.writer(response, delimiter=";")
-        writer.writerow(["Sesija ID", "Datum sesije", "Student", "Asistent", "Sati", "Bilješka"])
+        headers = ["Sesija ID", "Datum sesije", "Student", "Asistent", "Sati", "Bilješka"]
+        rows = []
         for s in qs:
             plan = s.plan
-            writer.writerow([
-                s.session_id, s.session_date,
+            rows.append([
+                s.session_id, str(s.session_date),
                 f"{plan.student.first_name} {plan.student.last_name}",
                 f"{plan.assistant.first_name} {plan.assistant.last_name}" if plan.assistant else "",
                 float(s.hours), s.notes,
             ])
-        return response
+        return _xlsx_response("podrska.xlsx", headers, rows)

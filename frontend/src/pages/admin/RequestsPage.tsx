@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import AssignDriverModal from "../../components/AssignDriverModal";
+import AssignAssistantModal from "../../components/AssignAssistantModal";
+import { formatDateHR } from "../../utils/date";
+import AdminTransportPage from "./AdminTransportPage";
+import HomeCareAdminPage from "./HomeCareAdminPage";
+import PeerSupportAdminPage from "./PeerSupportAdminPage";
 
-function formatDateHR(dateStr: string): string {
-  if (!dateStr) return "—";
-  const [year, month, day] = dateStr.split("-");
-  return `${day}.${month}.${year}.`;
-}
-
+type SubTab = "all" | "transport" | "care" | "support";
 type ServiceType = "transport" | "care" | "support" | "";
 type SortField = "date" | "student" | "type" | "status";
 type SortDir = "asc" | "desc";
@@ -50,6 +50,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function RequestsPage() {
+  const [subTab, setSubTab] = useState<SubTab>("all");
   const [allItems, setAllItems] = useState<UnifiedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<ServiceType>("");
@@ -58,6 +59,7 @@ export default function RequestsPage() {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [assigningId, setAssigningId] = useState<number | null>(null);
+  const [assigningAssistantId, setAssigningAssistantId] = useState<number | null>(null);
 
   function load() {
     setLoading(true);
@@ -114,6 +116,11 @@ export default function RequestsPage() {
     load();
   }
 
+  async function changeSupportStatus(id: number, action: string) {
+    await api.post(`/peer-support/plans/${id}/${action}/`);
+    load();
+  }
+
   function handleSort(field: SortField) {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -147,10 +154,39 @@ export default function RequestsPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
 
+  const subTabs: { key: SubTab; label: string }[] = [
+    { key: "all", label: "Svi zahtjevi" },
+    { key: "transport", label: "Prijevoz" },
+    { key: "care", label: "Njega u domu" },
+    { key: "support", label: "Vršnjačka podrška" },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <h1 className="text-xl font-bold text-gray-800 mb-4">Zahtjevi</h1>
 
+      {/* Sub-tab navigation */}
+      <div className="flex gap-1 mb-5 border-b border-gray-200">
+        {subTabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setSubTab(t.key)}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              subTab === t.key
+                ? "bg-white border border-b-white border-gray-200 text-blue-700 -mb-px"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "transport" && <AdminTransportPage />}
+      {subTab === "care" && <HomeCareAdminPage />}
+      {subTab === "support" && <PeerSupportAdminPage />}
+
+      {subTab === "all" && (<>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 flex flex-wrap gap-3 items-end">
         <div>
           <label className="block text-xs text-gray-500 mb-1">Tip usluge</label>
@@ -260,6 +296,30 @@ export default function RequestsPage() {
                             Otkaži
                           </button>
                         )}
+                        {item.type === "support" && item.status === "pending" && (
+                          <button onClick={() => changeSupportStatus(item.id, "confirm")}
+                            className="text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded hover:bg-teal-100">
+                            Potvrdi
+                          </button>
+                        )}
+                        {item.type === "support" && item.status === "pending" && (
+                          <button onClick={() => changeSupportStatus(item.id, "reject")}
+                            className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded hover:bg-red-100">
+                            Odbij
+                          </button>
+                        )}
+                        {item.type === "support" && item.status === "active" && (
+                          <button onClick={() => changeSupportStatus(item.id, "complete")}
+                            className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded hover:bg-green-100">
+                            Završi
+                          </button>
+                        )}
+                        {item.type === "support" && item.status === "pending" && (
+                          <button onClick={() => setAssigningAssistantId(item.id)}
+                            className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-100">
+                            Dodijeli asistenta
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -274,11 +334,20 @@ export default function RequestsPage() {
           </table>
         </div>
       )}
+      </>)}
 
       {assigningId && (
         <AssignDriverModal
           requestId={assigningId}
           onClose={() => setAssigningId(null)}
+          onAssigned={load}
+        />
+      )}
+
+      {assigningAssistantId && (
+        <AssignAssistantModal
+          planId={assigningAssistantId}
+          onClose={() => setAssigningAssistantId(null)}
           onAssigned={load}
         />
       )}

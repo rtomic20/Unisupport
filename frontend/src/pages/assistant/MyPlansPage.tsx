@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import api from "../../api/axios";
+import { formatDateHR } from "../../utils/date";
 
 interface Session {
   session_id: number;
@@ -282,7 +283,7 @@ export default function MyPlansPage() {
                               {sessions.map((s) => (
                                 <tr key={s.session_id} className="hover:bg-gray-50">
                                   <td className="px-3 py-2 text-gray-700 whitespace-nowrap">
-                                    {s.session_date}
+                                    {formatDateHR(s.session_date)}
                                   </td>
                                   <td className="px-3 py-2 text-gray-700 font-medium">
                                     {s.hours}h

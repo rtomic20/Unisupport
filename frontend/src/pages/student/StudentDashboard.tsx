@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
-
-function formatDateHR(dateStr: string): string {
-  if (!dateStr) return "—";
-  const [year, month, day] = dateStr.split("-");
-  return `${day}.${month}.${year}.`;
-}
+import { formatDateHR } from "../../utils/date";
 
 const TRANSPORT_STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
@@ -213,6 +208,7 @@ export default function StudentDashboard() {
                     <th className="px-4 py-3">Naziv plana</th>
                     <th className="px-4 py-3">Početak</th>
                     <th className="px-4 py-3 text-right">Plan. sati</th>
+                    <th className="px-4 py-3 text-right">Odrađeno</th>
                     <th className="px-4 py-3">Status</th>
                   </tr>
                 </thead>
@@ -225,6 +221,7 @@ export default function StudentDashboard() {
                         <td className="px-4 py-3 font-medium text-gray-800">{p.title}</td>
                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDateHR(p.start_date)}</td>
                         <td className="px-4 py-3 text-right font-medium text-gray-700">{p.total_hours_planned}h</td>
+                        <td className="px-4 py-3 text-right font-medium text-blue-700">{p.total_hours_done}h</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${PLAN_STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
                             {PLAN_STATUS_LABELS[p.status] ?? p.status}

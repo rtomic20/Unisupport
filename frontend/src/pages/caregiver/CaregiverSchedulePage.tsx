@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
+import { formatDateHR } from "../../utils/date";
 
 interface Appointment {
   appointment_id: number;
@@ -81,7 +82,7 @@ export default function CaregiverSchedulePage() {
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-800">Moj raspored</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {selectedDate ? `Termini za datum: ${selectedDate}` : "Svi vaši termini"}
+          {selectedDate ? `Termini za datum: ${formatDateHR(selectedDate)}` : "Svi vaši termini"}
         </p>
       </div>
 
@@ -141,7 +142,7 @@ export default function CaregiverSchedulePage() {
                 {appointments.map((appt) => (
                   <tr key={appt.appointment_id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
-                      {appt.appointment_date}
+                      {formatDateHR(appt.appointment_date)}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
                       {formatTime(appt.start_time)}

@@ -132,9 +132,9 @@ export default function ReportsPage() {
       if (filters.worker_id) params.worker_id = filters.worker_id;
 
       const urls: Record<ReportTab, { url: string; filename: string }> = {
-        transport: { url: "/reports/export-rides-csv/", filename: "voznje.csv" },
-        care: { url: "/reports/export-care-csv/", filename: "njega.csv" },
-        support: { url: "/reports/export-support-csv/", filename: "podrska.csv" },
+        transport: { url: "/reports/export-rides-csv/", filename: "voznje.xlsx" },
+        care: { url: "/reports/export-care-csv/", filename: "njega.xlsx" },
+        support: { url: "/reports/export-support-csv/", filename: "podrska.xlsx" },
       };
       const { url, filename } = urls[activeTab];
       const response = await api.get(url, { params, responseType: "blob" });
@@ -183,7 +183,7 @@ export default function ReportsPage() {
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          {exporting ? "Izvoz..." : `Izvezi CSV (${tabs.find(t => t.key === activeTab)?.label})`}
+          {exporting ? "Izvoz..." : `Izvezi Excel (${tabs.find(t => t.key === activeTab)?.label})`}
         </button>
       </div>
 

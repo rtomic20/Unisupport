@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/Navbar";
+import AccessibilityToolbar from "./components/AccessibilityToolbar";
 
 import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -45,7 +46,8 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
+      <AccessibilityToolbar />
     </div>
   );
 }
