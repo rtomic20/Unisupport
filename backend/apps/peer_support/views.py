@@ -37,9 +37,9 @@ class SupportPlanViewSet(ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         if user.role_name == "student":
-            serializer.save(student=user)
+            serializer.save(student=user, status="pending")
         else:
-            serializer.save(status="active")
+            serializer.save()
 
     def get_permissions(self):
         if self.action in ("destroy", "confirm", "reject", "complete", "assign_assistant"):
