@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../api/axios";
 import { formatDateHR } from "../../utils/date";
+import AssignDriverModal from "../../components/AssignDriverModal";
 
 interface User {
   user_id: number;
@@ -53,6 +54,7 @@ export default function AdminTransportPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [formSaving, setFormSaving] = useState(false);
+  const [assigningId, setAssigningId] = useState<number | null>(null);
 
   function load() {
     setLoading(true);
@@ -179,6 +181,14 @@ export default function AdminTransportPage() {
                       )}
                       {r.status === "pending" && (
                         <button
+                          onClick={() => setAssigningId(r.request_id)}
+                          className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-100"
+                        >
+                          Dodijeli vozača
+                        </button>
+                      )}
+                      {r.status === "pending" && (
+                        <button
                           onClick={() => changeStatus(r.request_id, "reject")}
                           className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded hover:bg-red-100"
                         >
@@ -199,6 +209,14 @@ export default function AdminTransportPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {assigningId && (
+        <AssignDriverModal
+          requestId={assigningId}
+          onClose={() => setAssigningId(null)}
+          onAssigned={load}
+        />
       )}
 
       {showForm && (
