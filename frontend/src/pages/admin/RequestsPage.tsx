@@ -111,6 +111,11 @@ export default function RequestsPage() {
     load();
   }
 
+  async function changeSupportStatus(id: number, action: string) {
+    await api.post(`/peer-support/plans/${id}/${action}/`);
+    load();
+  }
+
   function handleSort(field: SortField) {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -255,6 +260,24 @@ export default function RequestsPage() {
                           <button onClick={() => changeCareStatus(item.id, "cancelled")}
                             className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded hover:bg-red-100">
                             Otkaži
+                          </button>
+                        )}
+                        {item.type === "support" && item.status === "pending" && (
+                          <button onClick={() => changeSupportStatus(item.id, "confirm")}
+                            className="text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded hover:bg-teal-100">
+                            Potvrdi
+                          </button>
+                        )}
+                        {item.type === "support" && item.status === "pending" && (
+                          <button onClick={() => changeSupportStatus(item.id, "reject")}
+                            className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded hover:bg-red-100">
+                            Odbij
+                          </button>
+                        )}
+                        {item.type === "support" && item.status === "active" && (
+                          <button onClick={() => changeSupportStatus(item.id, "complete")}
+                            className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded hover:bg-green-100">
+                            Završi
                           </button>
                         )}
                         {item.type === "support" && item.status === "pending" && (
