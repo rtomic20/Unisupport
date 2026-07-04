@@ -31,6 +31,7 @@ export default function TransportPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [timeError, setTimeError] = useState("");
@@ -48,11 +49,28 @@ export default function TransportPage() {
     load();
   }, []);
 
-  function validateTimes(): boolean {
-    if (form.end_time) {
-      // end_time is arrival deadline — just validate it's a real time
+  function openEdit(r: any) {
+    setEditingId(r.request_id);
+    setForm({
+      request_date: r.request_date,
+      end_time: r.end_time?.slice(0, 5) ?? "",
+      pickup_address: r.transport_details?.pickup_address ?? "",
+      dropoff_address: r.transport_details?.dropoff_address ?? "",
+      description: r.description ?? "",
+    });
+    setFormError("");
+    setTimeError("");
+    setShowForm(true);
+  }
+
+  async function handleCancel(id: number) {
+    if (!confirm("Otkazati ovaj zahtjev?")) return;
+    try {
+      await api.post(`/requests/${id}/reject/`);
+      load();
+    } catch {
+      alert("Greška pri otkazivanju.");
     }
-    return true;
   }
 
   async function handleCreate(e: FormEvent) {
@@ -65,17 +83,30 @@ export default function TransportPage() {
     }
     setSaving(true);
     try {
-      await api.post("/requests/", {
-        request_type: "transport",
-        request_date: form.request_date,
-        end_time: form.end_time + ":00",
-        description: form.description,
-        transport_details: {
-          pickup_address: form.pickup_address,
-          dropoff_address: form.dropoff_address,
-        },
-      });
+      if (editingId) {
+        await api.patch(`/requests/${editingId}/`, {
+          request_date: form.request_date,
+          end_time: form.end_time + ":00",
+          description: form.description,
+          transport_details: {
+            pickup_address: form.pickup_address,
+            dropoff_address: form.dropoff_address,
+          },
+        });
+      } else {
+        await api.post("/requests/", {
+          request_type: "transport",
+          request_date: form.request_date,
+          end_time: form.end_time + ":00",
+          description: form.description,
+          transport_details: {
+            pickup_address: form.pickup_address,
+            dropoff_address: form.dropoff_address,
+          },
+        });
+      }
       setShowForm(false);
+      setEditingId(null);
       setForm(EMPTY_FORM);
       load();
     } catch (err: any) {
@@ -96,7 +127,7 @@ export default function TransportPage() {
           </p>
         </div>
         <button
-          onClick={() => { setForm(EMPTY_FORM); setFormError(""); setTimeError(""); setShowForm(true); }}
+          onClick={() => { setEditingId(null); setForm(EMPTY_FORM); setFormError(""); setTimeError(""); setShowForm(true); }}
           className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
         >
           + Novi zahtjev za prijevoz
@@ -117,12 +148,13 @@ export default function TransportPage() {
                   <th className="px-4 py-3">Dolazak do</th>
                   <th className="px-4 py-3">Vozač</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {requests.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
+                    <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
                       Nema zahtjeva za prijevoz.
                     </td>
                   </tr>
@@ -139,6 +171,14 @@ export default function TransportPage() {
                           {STATUS_LABELS[r.status] ?? r.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3">
+                        {r.status === "pending" && (
+                          <div className="flex gap-1">
+                            <button onClick={() => openEdit(r)} className="text-xs text-blue-600 hover:underline">Uredi</button>
+                            <button onClick={() => handleCancel(r.request_id)} className="text-xs text-red-500 hover:underline">Otkaži</button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -152,7 +192,7 @@ export default function TransportPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Novi zahtjev za prijevoz</h2>
+              <h2 className="font-semibold text-gray-900">{editingId ? "Uredi zahtjev" : "Novi zahtjev za prijevoz"}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
             <form onSubmit={handleCreate} className="p-5 space-y-3">
@@ -194,7 +234,7 @@ export default function TransportPage() {
                   className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Odustani</button>
                 <button type="submit" disabled={saving}
                   className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
-                  {saving ? "Šaljem..." : "Pošalji zahtjev"}
+                  {saving ? "Sprema..." : editingId ? "Spremi" : "Pošalji zahtjev"}
                 </button>
               </div>
             </form>

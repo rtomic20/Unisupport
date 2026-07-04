@@ -18,7 +18,7 @@ interface Plan {
   end_date: string;
   total_hours_planned: number;
   total_hours_done: number;
-  status: "active" | "completed" | "cancelled";
+  status: "pending" | "active" | "completed" | "cancelled";
 }
 
 const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
@@ -129,6 +129,7 @@ export default function MySupportPlansPage() {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   const [showForm, setShowForm] = useState(false);
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
   const [planForm, setPlanForm] = useState(EMPTY_PLAN_FORM);
   const [planFormError, setPlanFormError] = useState("");
   const [planFormSaving, setPlanFormSaving] = useState(false);
@@ -147,6 +148,29 @@ export default function MySupportPlansPage() {
     loadPlans();
   }, [loadPlans]);
 
+  function openEditPlan(plan: Plan) {
+    setEditingPlanId(plan.plan_id);
+    setPlanForm({
+      title: plan.title,
+      description: "",
+      start_date: plan.start_date,
+      end_date: plan.end_date ?? "",
+      total_hours_planned: String(plan.total_hours_planned),
+    });
+    setPlanFormError("");
+    setShowForm(true);
+  }
+
+  async function handleCancelPlan(id: number) {
+    if (!confirm("Otkazati ovaj plan podrške?")) return;
+    try {
+      await api.post(`/peer-support/plans/${id}/reject/`);
+      loadPlans();
+    } catch {
+      alert("Greška pri otkazivanju.");
+    }
+  }
+
   async function handleCreatePlan() {
     setPlanFormError("");
     if (!planForm.title || !planForm.start_date || !planForm.total_hours_planned) {
@@ -155,14 +179,25 @@ export default function MySupportPlansPage() {
     }
     setPlanFormSaving(true);
     try {
-      await api.post("/peer-support/plans/", {
-        title: planForm.title,
-        description: planForm.description,
-        start_date: planForm.start_date,
-        end_date: planForm.end_date || null,
-        total_hours_planned: Number(planForm.total_hours_planned),
-      });
+      if (editingPlanId) {
+        await api.patch(`/peer-support/plans/${editingPlanId}/`, {
+          title: planForm.title,
+          description: planForm.description,
+          start_date: planForm.start_date,
+          end_date: planForm.end_date || null,
+          total_hours_planned: Number(planForm.total_hours_planned),
+        });
+      } else {
+        await api.post("/peer-support/plans/", {
+          title: planForm.title,
+          description: planForm.description,
+          start_date: planForm.start_date,
+          end_date: planForm.end_date || null,
+          total_hours_planned: Number(planForm.total_hours_planned),
+        });
+      }
       setShowForm(false);
+      setEditingPlanId(null);
       setPlanForm(EMPTY_PLAN_FORM);
       loadPlans();
     } catch (err: any) {
@@ -203,7 +238,7 @@ export default function MySupportPlansPage() {
           <p className="text-sm text-gray-500 mt-1">Pregled vaših planova vršnjačke podrške i sesija s asistentom.</p>
         </div>
         <button
-          onClick={() => { setPlanForm(EMPTY_PLAN_FORM); setPlanFormError(""); setShowForm(true); }}
+          onClick={() => { setEditingPlanId(null); setPlanForm(EMPTY_PLAN_FORM); setPlanFormError(""); setShowForm(true); }}
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           + Zatraži plan podrške
@@ -303,6 +338,14 @@ export default function MySupportPlansPage() {
                     </div>
                   </button>
 
+                  {/* Pending actions */}
+                  {plan.status === "pending" && (
+                    <div className="px-4 pb-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => openEditPlan(plan)} className="text-xs text-blue-600 hover:underline">Uredi</button>
+                      <button onClick={() => handleCancelPlan(plan.plan_id)} className="text-xs text-red-500 hover:underline">Otkaži</button>
+                    </div>
+                  )}
+
                   {/* Expanded sessions */}
                   {isOpen && (
                     <div className="border-t border-dashed border-gray-100 bg-gray-50/60">
@@ -330,7 +373,7 @@ export default function MySupportPlansPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <h2 id="create-plan-title" className="font-semibold text-gray-900">
-                Zatraži plan podrške
+                {editingPlanId ? "Uredi plan podrške" : "Zatraži plan podrške"}
               </h2>
               <button
                 onClick={() => setShowForm(false)}
@@ -424,7 +467,7 @@ export default function MySupportPlansPage() {
                   disabled={planFormSaving}
                   className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {planFormSaving ? "Slanje..." : "Pošalji zahtjev"}
+                  {planFormSaving ? "Sprema..." : editingPlanId ? "Spremi" : "Pošalji zahtjev"}
                 </button>
               </div>
             </div>

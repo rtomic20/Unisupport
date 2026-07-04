@@ -47,6 +47,7 @@ export default function MyAppointmentsPage() {
   const [error, setError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [formSaving, setFormSaving] = useState(false);
@@ -70,9 +71,33 @@ export default function MyAppointmentsPage() {
   }, []);
 
   function openCreate() {
+    setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError("");
     setShowForm(true);
+  }
+
+  function openEdit(appt: Appointment) {
+    setEditingId(appt.appointment_id);
+    setForm({
+      appointment_date: appt.appointment_date,
+      start_time: appt.start_time?.slice(0, 5) ?? "",
+      end_time: appt.end_time?.slice(0, 5) ?? "",
+      location: appt.location ?? "",
+      description: appt.description ?? "",
+    });
+    setFormError("");
+    setShowForm(true);
+  }
+
+  async function handleCancelAppt(id: number) {
+    if (!confirm("Otkazati ovaj termin?")) return;
+    try {
+      await api.patch(`/home-care/appointments/${id}/`, { status: "cancelled" });
+      load();
+    } catch {
+      alert("Greška pri otkazivanju.");
+    }
   }
 
   async function handleCreate() {
@@ -83,14 +108,25 @@ export default function MyAppointmentsPage() {
     }
     setFormSaving(true);
     try {
-      await api.post("/home-care/appointments/", {
-        appointment_date: form.appointment_date,
-        start_time: form.start_time,
-        end_time: form.end_time,
-        location: form.location,
-        description: form.description,
-      });
+      if (editingId) {
+        await api.patch(`/home-care/appointments/${editingId}/`, {
+          appointment_date: form.appointment_date,
+          start_time: form.start_time,
+          end_time: form.end_time,
+          location: form.location,
+          description: form.description,
+        });
+      } else {
+        await api.post("/home-care/appointments/", {
+          appointment_date: form.appointment_date,
+          start_time: form.start_time,
+          end_time: form.end_time,
+          location: form.location,
+          description: form.description,
+        });
+      }
       setShowForm(false);
+      setEditingId(null);
       load();
     } catch (err: any) {
       setFormError(JSON.stringify(err.response?.data ?? "Greška pri kreiranju."));
@@ -152,6 +188,7 @@ export default function MyAppointmentsPage() {
                   <th className="px-4 py-3">Njegovatelj/ica</th>
                   <th className="px-4 py-3">Opis</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -184,6 +221,14 @@ export default function MyAppointmentsPage() {
                         {STATUS_LABELS[appt.status] ?? appt.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      {appt.status === "pending" && (
+                        <div className="flex gap-1">
+                          <button onClick={() => openEdit(appt)} className="text-xs text-blue-600 hover:underline">Uredi</button>
+                          <button onClick={() => handleCancelAppt(appt.appointment_id)} className="text-xs text-red-500 hover:underline">Otkaži</button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -201,7 +246,7 @@ export default function MyAppointmentsPage() {
         >
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Zatraži termin njege</h2>
+              <h2 className="font-semibold text-gray-900">{editingId ? "Uredi termin" : "Zatraži termin njege"}</h2>
               <button
                 onClick={() => setShowForm(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -277,7 +322,7 @@ export default function MyAppointmentsPage() {
                   disabled={formSaving}
                   className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {formSaving ? "Sprema..." : "Pošalji zahtjev"}
+                  {formSaving ? "Sprema..." : editingId ? "Spremi" : "Pošalji zahtjev"}
                 </button>
               </div>
             </div>
