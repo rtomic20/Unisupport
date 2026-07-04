@@ -3,7 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 const roleLinks: Record<string, { label: string; to: string }[]> = {
   admin: [
-    { label: "Dashboard", to: "/admin/dashboard" },
+    { label: "Nadzorna ploča", to: "/admin/dashboard" },
     { label: "Zahtjevi", to: "/admin/requests" },
     { label: "Prijevoz", to: "/admin/transport" },
     { label: "Njega u domu", to: "/admin/home-care" },
@@ -25,11 +25,11 @@ const roleLinks: Record<string, { label: string; to: string }[]> = {
     { label: "Moje vožnje", to: "/driver/my-rides" },
   ],
   caregiver: [
-    { label: "Dashboard", to: "/caregiver/dashboard" },
+    { label: "Nadzorna ploča", to: "/caregiver/dashboard" },
     { label: "Moj raspored", to: "/caregiver/schedule" },
   ],
   assistant: [
-    { label: "Dashboard", to: "/assistant/dashboard" },
+    { label: "Nadzorna ploča", to: "/assistant/dashboard" },
     { label: "Moji planovi", to: "/assistant/plans" },
   ],
 };
