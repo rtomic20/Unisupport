@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import AssignDriverModal from "../../components/AssignDriverModal";
-
-function formatDateHR(dateStr: string): string {
-  if (!dateStr) return "—";
-  const [year, month, day] = dateStr.split("-");
-  return `${day}.${month}.${year}.`;
-}
+import AssignAssistantModal from "../../components/AssignAssistantModal";
+import { formatDateHR } from "../../utils/date";
 
 type ServiceType = "transport" | "care" | "support" | "";
 type SortField = "date" | "student" | "type" | "status";
@@ -58,6 +54,7 @@ export default function RequestsPage() {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [assigningId, setAssigningId] = useState<number | null>(null);
+  const [assigningAssistantId, setAssigningAssistantId] = useState<number | null>(null);
 
   function load() {
     setLoading(true);
@@ -260,6 +257,12 @@ export default function RequestsPage() {
                             Otkaži
                           </button>
                         )}
+                        {item.type === "support" && item.status === "pending" && (
+                          <button onClick={() => setAssigningAssistantId(item.id)}
+                            className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-100">
+                            Dodijeli asistenta
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -279,6 +282,14 @@ export default function RequestsPage() {
         <AssignDriverModal
           requestId={assigningId}
           onClose={() => setAssigningId(null)}
+          onAssigned={load}
+        />
+      )}
+
+      {assigningAssistantId && (
+        <AssignAssistantModal
+          planId={assigningAssistantId}
+          onClose={() => setAssigningAssistantId(null)}
           onAssigned={load}
         />
       )}

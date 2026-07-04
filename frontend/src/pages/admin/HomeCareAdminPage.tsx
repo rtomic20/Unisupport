@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../api/axios";
-
-function formatDateHR(dateStr: string): string {
-  if (!dateStr) return "—";
-  const [year, month, day] = dateStr.split("-");
-  return `${day}.${month}.${year}.`;
-}
+import { formatDateHR } from "../../utils/date";
 
 interface User {
   user_id: number;

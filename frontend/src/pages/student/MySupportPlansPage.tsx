@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import api from "../../api/axios";
+import { formatDateHR } from "../../utils/date";
 
 interface Session {
   session_id: number;
@@ -95,7 +96,7 @@ function SessionsPanel({ planId }: { planId: number }) {
           {sessions.map((s) => (
             <tr key={s.session_id} className="hover:bg-gray-50">
               <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">
-                {s.session_date}
+                {formatDateHR(s.session_date)}
               </td>
               <td className="px-4 py-2.5 text-right font-medium text-blue-700 whitespace-nowrap">
                 {s.hours}h
@@ -211,7 +212,11 @@ export default function MySupportPlansPage() {
 
       {plans.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-          <div className="text-4xl mb-3">📋</div>
+          <div className="flex justify-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
           <p className="text-gray-500 text-sm">
             Nemate evidentiranih planova podrške.
           </p>
@@ -252,7 +257,7 @@ export default function MySupportPlansPage() {
                         Asistent: {plan.assistant_name}
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                        <span>{plan.start_date} – {plan.end_date}</span>
+                        <span>{formatDateHR(plan.start_date)} – {formatDateHR(plan.end_date)}</span>
                         <span>
                           Planiran:{" "}
                           <span className="font-medium text-gray-700">
@@ -280,10 +285,10 @@ export default function MySupportPlansPage() {
                         {plan.assistant_name}
                       </span>
                       <span className="text-gray-600 text-right whitespace-nowrap">
-                        {plan.start_date}
+                        {formatDateHR(plan.start_date)}
                       </span>
                       <span className="text-gray-600 text-right whitespace-nowrap">
-                        {plan.end_date}
+                        {formatDateHR(plan.end_date)}
                       </span>
                       <span className="text-right font-medium text-gray-700 whitespace-nowrap">
                         {plan.total_hours_planned}h

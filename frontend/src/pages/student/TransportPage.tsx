@@ -1,12 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import api from "../../api/axios";
 import TimePicker from "../../components/TimePicker";
-
-function formatDateHR(dateStr: string): string {
-  if (!dateStr) return "—";
-  const [year, month, day] = dateStr.split("-");
-  return `${day}.${month}.${year}.`;
-}
+import { formatDateHR } from "../../utils/date";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 border-yellow-200",

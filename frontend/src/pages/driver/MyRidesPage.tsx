@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import TimePicker from "../../components/TimePicker";
+import { formatDateHR } from "../../utils/date";
 
 function formatTime(t: string | null) {
   if (!t) return "—";
@@ -95,7 +96,7 @@ export default function MyRidesPage() {
 
                   <div>
                     <p className="text-sm font-semibold text-gray-700">{r.student_name}</p>
-                    <p className="text-sm text-gray-500">{r.request_date}</p>
+                    <p className="text-sm text-gray-500">{formatDateHR(r.request_date)}</p>
                   </div>
 
                   {r.transport_details && (

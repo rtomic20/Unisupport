@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+/* =============================================
+   ACCESSIBILITY — skip link
+   ============================================= */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 9999;
+  padding: 8px 20px;
+  background: #1d4ed8;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-radius: 0 0 8px 0;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* =============================================
+   ACCESSIBILITY — font size scaling
+   ============================================= */
+[data-font-size="large"] {
+  font-size: 112.5%;
+}
+[data-font-size="xlarge"] {
+  font-size: 125%;
+}
+
+/* =============================================
+   ACCESSIBILITY — high contrast mode
+   ============================================= */
+[data-contrast="high"] .text-gray-400,
+[data-contrast="high"] .text-gray-500 {
+  color: #374151 !important;
+}
+[data-contrast="high"] .border-gray-100,
+[data-contrast="high"] .divide-gray-50 {
+  border-color: #9ca3af !important;
+}
+[data-contrast="high"] .border-gray-200,
+[data-contrast="high"] .border-gray-300 {
+  border-color: #6b7280 !important;
+}
+[data-contrast="high"] .bg-gray-50 {
+  background-color: #f3f4f6 !important;
+}
+[data-contrast="high"] *:focus-visible {
+  outline: 3px solid #1d4ed8 !important;
+  outline-offset: 2px !important;
+}
+[data-contrast="high"] .shadow-sm {
+  box-shadow: 0 0 0 1px #374151 !important;
+}
+
+/* =============================================
+   ACCESSIBILITY — dyslexia-friendly mode
+   Wider spacing, clear sans-serif, strong line height
+   ============================================= */
+[data-dyslexia="true"] body,
+[data-dyslexia="true"] p,
+[data-dyslexia="true"] span,
+[data-dyslexia="true"] td,
+[data-dyslexia="true"] th,
+[data-dyslexia="true"] li,
+[data-dyslexia="true"] label,
+[data-dyslexia="true"] input,
+[data-dyslexia="true"] select,
+[data-dyslexia="true"] textarea,
+[data-dyslexia="true"] button {
+  font-family: Arial, Helvetica, sans-serif !important;
+  letter-spacing: 0.08em !important;
+  word-spacing: 0.16em !important;
+  line-height: 1.8 !important;
+}
+
+/* =============================================
+   ACCESSIBILITY — reduced motion
+   ============================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =============================================
+   GLOBAL — focus rings for keyboard nav
+   ============================================= */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}

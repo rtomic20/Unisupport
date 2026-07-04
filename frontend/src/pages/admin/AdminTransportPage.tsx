@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { formatDateHR } from "../../utils/date";
 
 interface User {
   user_id: number;
@@ -156,7 +157,7 @@ export default function AdminTransportPage() {
                 <tr key={r.request_id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-400">{r.request_id}</td>
                   <td className="px-4 py-3 text-gray-700">{r.student_name}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.request_date}</td>
+                  <td className="px-4 py-3 text-gray-600">{formatDateHR(r.request_date)}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{r.transport_details?.pickup_address || "—"}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{r.transport_details?.dropoff_address || "—"}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{r.end_time?.slice(0, 5)}</td>

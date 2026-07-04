@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../api/axios";
-
-function formatDateHR(dateStr: string): string {
-  if (!dateStr) return "—";
-  const [year, month, day] = dateStr.split("-");
-  return `${day}.${month}.${year}.`;
-}
+import { formatDateHR } from "../../utils/date";
 
 interface User {
   user_id: number;
@@ -303,7 +298,7 @@ export default function PeerSupportAdminPage() {
                             <tbody className="bg-white divide-y divide-gray-100">
                               {sessions.map((s: any) => (
                                 <tr key={s.session_id} className="hover:bg-gray-50">
-                                  <td className="px-3 py-2 text-gray-700">{s.session_date}</td>
+                                  <td className="px-3 py-2 text-gray-700">{formatDateHR(s.session_date)}</td>
                                   <td className="px-3 py-2 text-gray-700">{s.hours} h</td>
                                   <td className="px-3 py-2 text-gray-500">{s.notes || "—"}</td>
                                 </tr>
