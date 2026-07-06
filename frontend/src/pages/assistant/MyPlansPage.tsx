@@ -59,19 +59,25 @@ export default function MyPlansPage() {
   const [formsMap, setFormsMap] = useState<Record<number, NewSessionForm>>({});
   const [savingMap, setSavingMap] = useState<Record<number, boolean>>({});
   const [formErrorsMap, setFormErrorsMap] = useState<Record<number, string>>({});
+  const [completingMap, setCompletingMap] = useState<Record<number, boolean>>({});
+  const [completeErrorMap, setCompleteErrorMap] = useState<Record<number, string>>({});
 
-  useEffect(() => {
-    api
+  const reloadPlans = useCallback(() => {
+    return api
       .get<SupportPlan[] | { results: SupportPlan[] }>("/peer-support/plans/")
       .then((res) => {
         const data = Array.isArray(res.data)
           ? res.data
           : (res.data as { results: SupportPlan[] }).results ?? [];
         setPlans(data);
-      })
+      });
+  }, []);
+
+  useEffect(() => {
+    reloadPlans()
       .catch(() => setError("Greška pri učitavanju planova."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [reloadPlans]);
 
   const loadSessions = useCallback((planId: number) => {
     setSessionsLoadingMap((prev) => ({ ...prev, [planId]: true }));
@@ -140,21 +146,27 @@ export default function MyPlansPage() {
       // Reset form and reload sessions + plans
       setFormsMap((prev) => ({ ...prev, [planId]: emptyForm() }));
       loadSessions(planId);
-      // Refresh plans to update done_hours
-      api
-        .get<SupportPlan[] | { results: SupportPlan[] }>("/peer-support/plans/")
-        .then((res) => {
-          const data = Array.isArray(res.data)
-            ? res.data
-            : (res.data as { results: SupportPlan[] }).results ?? [];
-          setPlans(data);
-        });
+      reloadPlans();
     } catch (err: any) {
       const errData = err.response?.data;
       const msg = errData?.hours || errData?.non_field_errors?.[0] || errData?.detail || "Greška pri bilježenju sesije.";
       setFormErrorsMap((prev) => ({ ...prev, [planId]: typeof msg === "string" ? msg : JSON.stringify(msg) }));
     } finally {
       setSavingMap((prev) => ({ ...prev, [planId]: false }));
+    }
+  }
+
+  async function handleCompletePlan(planId: number) {
+    setCompletingMap((prev) => ({ ...prev, [planId]: true }));
+    setCompleteErrorMap((prev) => ({ ...prev, [planId]: "" }));
+    try {
+      await api.post(`/peer-support/plans/${planId}/complete/`);
+      await reloadPlans();
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || "Greška pri završavanju plana.";
+      setCompleteErrorMap((prev) => ({ ...prev, [planId]: msg }));
+    } finally {
+      setCompletingMap((prev) => ({ ...prev, [planId]: false }));
     }
   }
 
@@ -298,6 +310,27 @@ export default function MyPlansPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Complete plan — shown once all planned hours are logged */}
+                    {plan.status === "active" && plan.total_hours_done >= plan.total_hours_planned && (
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
+                        <p className="text-sm text-green-700">
+                          Svi planirani sati su odrađeni. Plan se može završiti.
+                        </p>
+                        <div className="flex items-center gap-3">
+                          {completeErrorMap[plan.plan_id] && (
+                            <p className="text-red-500 text-xs">{completeErrorMap[plan.plan_id]}</p>
+                          )}
+                          <button
+                            onClick={() => handleCompletePlan(plan.plan_id)}
+                            disabled={completingMap[plan.plan_id]}
+                            className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
+                          >
+                            {completingMap[plan.plan_id] ? "Završavanje..." : "Završi plan"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Log new session form */}
                     {plan.status === "active" && (

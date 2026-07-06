@@ -42,7 +42,7 @@ class SupportPlanViewSet(ModelViewSet):
             serializer.save()
 
     def get_permissions(self):
-        if self.action in ("destroy", "confirm", "reject", "complete", "assign_assistant"):
+        if self.action in ("destroy", "confirm", "reject", "assign_assistant"):
             return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
 
@@ -64,11 +64,22 @@ class SupportPlanViewSet(ModelViewSet):
         plan.save()
         return Response(SupportPlanSerializer(plan).data)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsAdmin])
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def complete(self, request, pk=None):
+        from django.db.models import Sum
+
         plan = self.get_object()
         if plan.status != "active":
             return Response({"detail": "Može se završiti samo aktivan plan."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.user.role_name != "admin":
+            done = plan.sessions.aggregate(total=Sum("hours"))["total"] or 0
+            if float(done) < float(plan.total_hours_planned):
+                return Response(
+                    {"detail": "Plan se može završiti tek kada su odrađeni svi planirani sati."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         plan.status = "completed"
         plan.save()
         return Response(SupportPlanSerializer(plan).data)

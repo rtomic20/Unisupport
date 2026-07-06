@@ -4,11 +4,11 @@ import api from "../../api/axios";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface SupportPlan {
-  id: number;
+  plan_id: number;
   title: string;
   student_name: string;
-  planned_hours: number;
-  done_hours: number;
+  total_hours_planned: number;
+  total_hours_done: number;
   status: "active" | "completed" | "paused" | "cancelled";
 }
 
@@ -46,7 +46,7 @@ export default function AssistantDashboard() {
   }, []);
 
   const activePlans = plans.filter((p) => p.status === "active");
-  const totalDoneHours = plans.reduce((sum, p) => sum + (p.done_hours ?? 0), 0);
+  const totalDoneHours = plans.reduce((sum, p) => sum + (p.total_hours_done ?? 0), 0);
 
   if (loading) {
     return (
@@ -117,11 +117,11 @@ export default function AssistantDashboard() {
               ) : (
                 activePlans.map((plan) => {
                   const pct =
-                    plan.planned_hours > 0
-                      ? Math.min(100, Math.round((plan.done_hours / plan.planned_hours) * 100))
+                    plan.total_hours_planned > 0
+                      ? Math.min(100, Math.round((plan.total_hours_done / plan.total_hours_planned) * 100))
                       : 0;
                   return (
-                    <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={plan.plan_id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-700">
                         {plan.student_name}
                       </td>
@@ -129,7 +129,7 @@ export default function AssistantDashboard() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="text-gray-700 font-medium whitespace-nowrap">
-                            {plan.done_hours}h / {plan.planned_hours}h
+                            {plan.total_hours_done}h / {plan.total_hours_planned}h
                           </span>
                           <div className="flex-1 min-w-16 bg-gray-100 rounded-full h-1.5">
                             <div
